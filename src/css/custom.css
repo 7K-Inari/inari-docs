@@ -1,0 +1,23 @@
+:root {
+  /* Inari fox/vermilion accent — placeholder brand colors */
+  --ifm-color-primary: #d9481c;
+  --ifm-color-primary-dark: #c24118;
+  --ifm-color-primary-darker: #b73c16;
+  --ifm-color-primary-darkest: #973112;
+  --ifm-color-primary-light: #e05024;
+  --ifm-color-primary-lighter: #e45a30;
+  --ifm-color-primary-lightest: #e87350;
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #f4703f;
+  --ifm-color-primary-dark: #f26027;
+  --ifm-color-primary-darker: #f05418;
+  --ifm-color-primary-darkest: #d1430b;
+  --ifm-color-primary-light: #f68057;
+  --ifm-color-primary-lighter: #f78a64;
+  --ifm-color-primary-lightest: #f9a582;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}
