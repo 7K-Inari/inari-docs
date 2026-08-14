@@ -1,0 +1,9 @@
+{
+  "label": "Ops",
+  "position": 8,
+  "link": {
+    "type": "generated-index",
+    "title": "Ops",
+    "description": "Operational documentation of record for the 7K-Inari org: release process, runbooks."
+  }
+}
