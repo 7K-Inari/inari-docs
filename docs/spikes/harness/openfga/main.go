@@ -189,6 +189,9 @@ func percentile(sorted []time.Duration, p float64) time.Duration {
 }
 
 func bench(scale, requests, concurrency int) {
+	if requests < 1 || concurrency < 1 {
+		panic("bench requires requests >= 1 and concurrency >= 1")
+	}
 	id := storeID()
 	instancesTotal := 5000 * scale
 	usersTotal := 500 + 20
