@@ -1,0 +1,179 @@
+{
+  "schema_version": "1.1",
+  "type_definitions": [
+    { "type": "user", "relations": {}, "metadata": null },
+    {
+      "type": "team",
+      "relations": { "member": { "this": {} } },
+      "metadata": {
+        "relations": {
+          "member": { "directly_related_user_types": [
+            { "type": "user" },
+            { "type": "team", "relation": "member" }
+          ] }
+        }
+      }
+    },
+    {
+      "type": "organization",
+      "relations": {
+        "admin": { "this": {} },
+        "viewer": { "this": {} }
+      },
+      "metadata": {
+        "relations": {
+          "admin": { "directly_related_user_types": [ { "type": "team", "relation": "member" } ] },
+          "viewer": { "directly_related_user_types": [ { "type": "team", "relation": "member" } ] }
+        }
+      }
+    },
+    {
+      "type": "tenant",
+      "relations": {
+        "parent": { "this": {} },
+        "admin": {
+          "union": { "child": [
+            { "this": {} },
+            { "computedUserset": { "relation": "viewer" } },
+            { "tupleToUserset": { "computedUserset": { "relation": "admin" }, "tupleset": { "relation": "parent" } } }
+          ] }
+        },
+        "viewer": {
+          "union": { "child": [
+            { "this": {} },
+            { "tupleToUserset": { "computedUserset": { "relation": "viewer" }, "tupleset": { "relation": "parent" } } }
+          ] }
+        }
+      },
+      "metadata": {
+        "relations": {
+          "parent": { "directly_related_user_types": [ { "type": "organization" } ] },
+          "admin": { "directly_related_user_types": [ { "type": "team", "relation": "member" } ] },
+          "viewer": { "directly_related_user_types": [ { "type": "team", "relation": "member" } ] }
+        }
+      }
+    },
+    {
+      "type": "cluster",
+      "relations": {
+        "parent": { "this": {} },
+        "operator": {
+          "union": { "child": [
+            { "this": {} },
+            { "tupleToUserset": { "computedUserset": { "relation": "admin" }, "tupleset": { "relation": "parent" } } }
+          ] }
+        },
+        "viewer": {
+          "union": { "child": [
+            { "this": {} },
+            { "computedUserset": { "relation": "operator" } },
+            { "tupleToUserset": { "computedUserset": { "relation": "viewer" }, "tupleset": { "relation": "parent" } } }
+          ] }
+        }
+      },
+      "metadata": {
+        "relations": {
+          "parent": { "directly_related_user_types": [ { "type": "tenant" } ] },
+          "operator": { "directly_related_user_types": [ { "type": "team", "relation": "member" } ] },
+          "viewer": { "directly_related_user_types": [ { "type": "team", "relation": "member" } ] }
+        }
+      }
+    },
+    {
+      "type": "cloud_account",
+      "relations": {
+        "parent": { "this": {} },
+        "operator": {
+          "union": { "child": [
+            { "this": {} },
+            { "tupleToUserset": { "computedUserset": { "relation": "operator" }, "tupleset": { "relation": "parent" } } }
+          ] }
+        },
+        "viewer": {
+          "union": { "child": [
+            { "this": {} },
+            { "computedUserset": { "relation": "operator" } },
+            { "tupleToUserset": { "computedUserset": { "relation": "viewer" }, "tupleset": { "relation": "parent" } } }
+          ] }
+        }
+      },
+      "metadata": {
+        "relations": {
+          "parent": { "directly_related_user_types": [ { "type": "cluster" } ] },
+          "operator": { "directly_related_user_types": [ { "type": "team", "relation": "member" } ] },
+          "viewer": { "directly_related_user_types": [ { "type": "team", "relation": "member" } ] }
+        }
+      }
+    },
+    {
+      "type": "catalog_item",
+      "relations": {
+        "parent": { "this": {} },
+        "operator": {
+          "union": { "child": [
+            { "this": {} },
+            { "tupleToUserset": { "computedUserset": { "relation": "operator" }, "tupleset": { "relation": "parent" } } }
+          ] }
+        },
+        "viewer": {
+          "union": { "child": [
+            { "this": {} },
+            { "computedUserset": { "relation": "operator" } },
+            { "tupleToUserset": { "computedUserset": { "relation": "viewer" }, "tupleset": { "relation": "parent" } } }
+          ] }
+        }
+      },
+      "metadata": {
+        "relations": {
+          "parent": { "directly_related_user_types": [ { "type": "cloud_account" } ] },
+          "operator": { "directly_related_user_types": [ { "type": "team", "relation": "member" } ] },
+          "viewer": { "directly_related_user_types": [ { "type": "team", "relation": "member" } ] }
+        }
+      }
+    },
+    {
+      "type": "resource_instance",
+      "relations": {
+        "parent": { "this": {} },
+        "editor": {
+          "union": { "child": [
+            { "this": {} },
+            { "tupleToUserset": { "computedUserset": { "relation": "operator" }, "tupleset": { "relation": "parent" } } }
+          ] }
+        },
+        "viewer": {
+          "union": { "child": [
+            { "this": {} },
+            { "computedUserset": { "relation": "editor" } },
+            { "tupleToUserset": { "computedUserset": { "relation": "viewer" }, "tupleset": { "relation": "parent" } } }
+          ] }
+        }
+      },
+      "metadata": {
+        "relations": {
+          "parent": { "directly_related_user_types": [ { "type": "catalog_item" } ] },
+          "editor": { "directly_related_user_types": [ { "type": "team", "relation": "member" } ] },
+          "viewer": { "directly_related_user_types": [ { "type": "team", "relation": "member" } ] }
+        }
+      }
+    },
+    {
+      "type": "tenant_zone",
+      "relations": {
+        "parent": { "this": {} },
+        "viewer": {
+          "union": { "child": [
+            { "this": {} },
+            { "tupleToUserset": { "computedUserset": { "relation": "viewer" }, "tupleset": { "relation": "parent" } } }
+          ] }
+        }
+      },
+      "metadata": {
+        "relations": {
+          "parent": { "directly_related_user_types": [ { "type": "tenant" } ] },
+          "viewer": { "directly_related_user_types": [ { "type": "team", "relation": "member" } ] }
+        }
+      }
+    }
+  ]
+}
