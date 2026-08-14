@@ -30,10 +30,13 @@ echo "$DEPLOYS" | while read -r ns image; do
   kubectl -n "$ns" get appprojects.argoproj.io --no-headers 2>/dev/null | wc -l | xargs echo "   AppProjects:"
 
   echo "== 5. skew classification =="
-  if [[ "$version" > "$SUPPORTED_MIN" || "$version" == "$SUPPORTED_MIN" ]]; then
+  ge() { [ "$(printf '%s\n%s\n' "$2" "$1" | sort -V | head -1)" = "$2" ]; }
+  if ge "$version" "$SUPPORTED_MIN" && ge "$SUPPORTED_MAX" "$version"; then
     echo "RESULT: BYO candidate — version $version within supported window [$SUPPORTED_MIN, $SUPPORTED_MAX]"
     echo "        default managementMode=observe-only; adoption requires explicit, audited opt-in per §12.1/3"
-  else
+  elif ! ge "$version" "$SUPPORTED_MIN"; then
     echo "RESULT: BYO candidate OUT OF SKEW ($version < $SUPPORTED_MIN) -> refuse adoption; offer bundle-managed side-by-side or document tenant upgrade"
+  else
+    echo "RESULT: BYO candidate NEWER THAN BUNDLE ($version > $SUPPORTED_MAX) -> observe-only until the bundle line catches up; never auto-upgrade"
   fi
 done

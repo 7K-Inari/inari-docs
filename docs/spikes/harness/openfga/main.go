@@ -1,8 +1,10 @@
 // OpenFGA spike harness: synthetic tuple load generator + Check/ListObjects benchmark.
 // Usage:
-//   go run . setup                        # create store + write authorization model
-//   go run . load <scale>                 # load synthetic tuples (scale=1 -> v1 envelope, 10 -> 10x)
-//   go run . bench <scale> <requests> <concurrency>
+//
+//	go run . setup                        # create store + write authorization model
+//	go run . load <scale>                 # load synthetic tuples (scale=1 -> v1 envelope, 10 -> 10x)
+//	go run . bench <scale> <requests> <concurrency>
+//
 // Env: FGA_API_URL (default http://localhost:8080), FGA_STORE_ID (set by setup)
 package main
 
@@ -188,7 +190,6 @@ func percentile(sorted []time.Duration, p float64) time.Duration {
 
 func bench(scale, requests, concurrency int) {
 	id := storeID()
-	rng := rand.New(rand.NewSource(42))
 	instancesTotal := 5000 * scale
 	usersTotal := 500 + 20
 
@@ -204,6 +205,7 @@ func bench(scale, requests, concurrency int) {
 			go func(i int) {
 				defer wg.Done()
 				defer func() { <-sem }()
+				rng := rand.New(rand.NewSource(42 + int64(i)))
 				u := fmt.Sprintf("user:u-%d", rng.Intn(usersTotal))
 				ri := rng.Intn(instancesTotal)
 				t0 := time.Now()
@@ -260,7 +262,7 @@ func bench(scale, requests, concurrency int) {
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("usage: setup | load <scale> | bench <scale> <requests> <concurrency>")
+		fmt.Println("usage: setup | load <scale> [startIdx] | bench <scale> <requests> <concurrency>")
 		os.Exit(1)
 	}
 	atoi := func(s string) int { n, _ := strconv.Atoi(s); return n }

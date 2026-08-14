@@ -2,7 +2,7 @@
 # Bundle-managed ArgoCD lifecycle harness (spike: m1-argocd-bundle-lifecycle).
 # Requires: docker, kind, kubectl. Installs "bundle" ArgoCD vA, upgrades to vB,
 # verifies Applications keep reconciling, then rolls back.
-# Usage: ./run.sh [argocd_version_a] [argocd_version_b]  e.g. ./run.sh v2.14.11 v3.0.6
+# Usage: ./run-upgrade-drill.sh [argocd_version_a] [argocd_version_b]  e.g. ./run-upgrade-drill.sh v2.14.11 v3.0.6
 set -euo pipefail
 VA="${1:-v2.14.11}"
 VB="${2:-v3.0.6}"
