@@ -1,0 +1,9 @@
+{
+  "label": "Spikes",
+  "position": 7,
+  "link": {
+    "type": "generated-index",
+    "title": "Research Spikes",
+    "description": "Time-boxed research spikes with go/no-go recommendations. M1 spikes gate the M1 milestone exit."
+  }
+}

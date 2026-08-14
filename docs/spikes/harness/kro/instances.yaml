@@ -1,0 +1,15 @@
+apiVersion: kro.run/v1alpha1
+kind: NamespaceAsAService
+metadata:
+  name: demo-ns
+spec:
+  name: kro-demo
+---
+apiVersion: kro.run/v1alpha1
+kind: WebService
+metadata:
+  name: demo-web
+spec:
+  name: demo-web
+  image: nginx:1.27
+  replicas: 1

@@ -1,0 +1,28 @@
+# Raw-CRD fallback: create the same composed resources WITHOUT the RGD instance,
+# proving tenants can bypass kro (or a broken RGD) and deploy via the underlying
+# primitives directly. In production these would be plain manifests committed to
+# the tenant state repo by the orchestrator.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kro-demo-raw
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-web-raw
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo-web-raw
+  template:
+    metadata:
+      labels:
+        app: demo-web-raw
+    spec:
+      containers:
+        - name: app
+          image: nginx:1.27
+          ports:
+            - containerPort: 8080
