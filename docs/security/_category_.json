@@ -1,0 +1,9 @@
+{
+  "label": "Security",
+  "position": 7,
+  "link": {
+    "type": "generated-index",
+    "title": "Security",
+    "description": "Security documentation: threat model per trust zone, security posture, and review artifacts."
+  }
+}
