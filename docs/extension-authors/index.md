@@ -1,13 +1,21 @@
 # Extension Authors
 
-Documentation for engineers building **Inari extensions**: backend plugins (gRPC contract) and UI extensions (Module Federation).
+Documentation for engineers building **Inari extensions**: backend plugins (gRPC sidecar contract) and UI extensions (Module Federation remotes) (plan §5.8).
 
-:::info Coming soon
-This section is a placeholder and will be filled in during later milestones (see the [development plan](../architecture/inari-platform-plan.md), M1+).
-:::
+First-party features eat the same dogfood — the ArgoCD action extension and AWS provider support are built on the public SDKs. The canonical reference implementation is **`inari-ext-argocd`** (`github.com/7K-Inari/inari-ext-argocd`): read it alongside these guides.
 
-Planned topics:
+## Contents
 
-- Backend plugin contract: versioned gRPC sidecars, authenticated extension proxy path
-- UI extension SDK: Module Federation remotes, blueprint extension points
-- Packaging, signing, and governance for third-party extensions
+- [Backend extensions](backend-extensions.md) — the versioned gRPC plugin contract, lifecycle, and the authenticated proxy path
+- [UI extensions](ui-extensions.md) — Module Federation remotes, blueprint extension points, dev harness
+- [Packaging & governance](packaging-governance.md) — signing, versioning, registry, and extension governance
+
+## Quickstart
+
+```bash
+inari extension init my-extension          # scaffolds backend + UI skeleton
+cd my-extension
+inari extension dev                        # runs against the dev control-plane harness
+```
+
+Then follow the tutorial: [write your first extension](../tutorials/first-extension.md).
