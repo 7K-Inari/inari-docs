@@ -29,6 +29,7 @@ npm run serve   # serve the production build locally
 | `docs/operator-guide/` | Platform operator runbooks & guides |
 | `docs/extension-authors/` | Plugin/UI-extension author docs |
 | `docs/tutorials/` | Step-by-step walkthroughs |
+| `docs/security/` | Security docs: threat model per trust zone, review artifacts |
 | `docs/adr/` | Architecture Decision Records (see [CONTRIBUTING.md](CONTRIBUTING.md)) |
 
 Sidebar labels and ordering are controlled by `_category_.json` files in each folder — you don't need to touch `sidebars.ts` when adding pages.
