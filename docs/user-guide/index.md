@@ -1,13 +1,14 @@
 # User Guide
 
-Documentation for **developers** using the Inari platform: discovering catalog items, deploying to tenant clusters, and viewing your resources.
+Documentation for **developers** using the Inari platform: discovering what you can run, deploying from the catalog, and operating your resources.
 
-:::info Coming soon
-This section is a placeholder and will be filled in during later milestones (see the [development plan](../architecture/inari-platform-plan.md), M1+).
-:::
+## Contents
 
-Planned topics:
+- [SSO login & tenants](sso-login.md) — signing in, switching tenants, the "All tenants" home
+- [The catalog](catalog.md) — per-cluster "what can I run here?", discovered + curated + platform items
+- [Deploying](deploying.md) — the schema-driven deploy wizard, policy feedback, GitOps delivery
+- [Resources](resources.md) — your inventory across clusters and accounts, health, upgrades
+- [kubectl access](kubectl-access.md) — kubelogin, tenant-scoped RBAC, troubleshooting
+- [Secrets](secrets.md) — ExternalSecrets against your tenant's SecretStore
 
-- Discovering what you can run on your clusters and AWS accounts (generated catalog)
-- Deploying catalog items and managing resource lifecycles
-- Viewing resources, connections, and integrations in one control plane
+New here? Start with the tutorials: [register a cluster](../tutorials/register-a-cluster.md), then [your first deploy](../tutorials/first-deploy.md).
