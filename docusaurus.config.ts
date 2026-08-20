@@ -18,11 +18,14 @@ const config: Config = {
   // yet. Downgrade to 'warn' for now; tighten to 'throw' once content stabilizes.
   onBrokenLinks: 'warn',
   markdown: {
+    mermaid: true,
     hooks: {
       onBrokenMarkdownLinks: 'warn',
       onBrokenMarkdownImages: 'warn',
     },
   },
+
+  themes: ['@docusaurus/theme-mermaid'],
 
   i18n: {
     defaultLocale: 'en',
