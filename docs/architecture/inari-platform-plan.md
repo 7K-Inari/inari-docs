@@ -215,6 +215,7 @@ A kubebuilder-built controller deployed by a single install manifest (or Helm) i
 
 - Tenant API servers trust the platform Keycloak via **structured JWT authentication** (`AuthenticationConfiguration`, stable in k8s 1.34)[^6^][^7^]: issuer = `…/realms/inari`, audiences `["kubernetes"]`, CEL claim mapping (e.g., require the `organization` claim).
 - Users log in with `kubelogin` (`kubectl oidc-login`)[^8^]; tokens carry `groups`.
+- **Claim contract (pinned, implemented in §7.2):** claim `groups` carries full Keycloak group paths with leading slash (`/tenant-acme/platform-team`), mapped verbatim by the API server; audiences are `kubernetes` + the per-tenant public client `org-<slug>-kubectl` (auto-provisioned at tenant creation, standard + device flow); the `organization` claim (multivalued) is pinned to the tenant alias via CEL. RBAC materialization binds `Group` subjects with these exact group-path strings.
 - **RBAC mapping UX (differentiator):** console maps Keycloak groups → per-tenant ClusterRoles (`tenant-acme-operator`, `tenant-acme-viewer`) bound to `Group` subjects; membership changes live in Keycloak only.
 - Control-plane automation acts via **impersonation** of tenant-scoped virtual users, keeping RBAC uniform; audit records both real and impersonated identities.
 
