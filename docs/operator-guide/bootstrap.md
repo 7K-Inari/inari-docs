@@ -42,7 +42,75 @@ How the first platform cluster and control plane are installed. Inari never requ
 
 6. **Run the backup job once and then a restore drill** before onboarding any tenant — see the [DR runbook](backup-restore.md). No tenant onboards before restore is tested.
 
-## Local/dev variant
+## Platform Vault setup (cluster registration exchange)
+
+Cluster registration (`agentgateway.RegisterCluster`) delivers the per-cluster OIDC client secret via the platform Vault: the control plane writes `<kvMount>/data/inari/clusters/<cluster-id>/oidc-client-secret` and the tenant cluster's ESO projects it in-cluster. If Vault is not configured, registration fails explicitly with `pending_secret_delivery`.
+
+The control plane authenticates with the **Kubernetes auth method** (ServiceAccount JWT → short-lived Vault token; `inari-server` chart ≥ the release carrying [PR #70](https://github.com/7K-Inari/inari-server/pull/70)). Static token auth remains available for back-compat but expires and needs manual rotation — do not use it for new installs.
+
+### One-time Vault configuration
+
+```bash
+export VAULT_ADDR="https://vault.example.org"
+vault login
+
+# 1. Write-only policy on the cluster prefix (KV v2)
+vault policy write inari-cluster-secrets - <<'EOF'
+path "secret/data/inari/clusters/*" {
+  capabilities = ["update"]
+}
+EOF
+
+# 2. Enable Kubernetes auth for the platform cluster (once per cluster)
+vault auth enable kubernetes
+
+# 3. Point it at the cluster API (needs a token-reviewer SA with
+#    system:auth-delegator, and the cluster CA)
+kubectl create serviceaccount vault-token-reviewer -n vault 2>/dev/null || true
+kubectl create clusterrolebinding vault-token-reviewer \
+  --clusterrole=system:auth-delegator \
+  --serviceaccount=vault:vault-token-reviewer 2>/dev/null || true
+vault write auth/kubernetes/config \
+  kubernetes_host="https://kubernetes.default.svc" \
+  kubernetes_ca_cert=@ca.crt \
+  token_reviewer_jwt="$(kubectl create token vault-token-reviewer -n vault --duration=8760h)"
+
+# 4. Role for the control plane
+vault write auth/kubernetes/role/inari-server \
+  bound_service_account_names=inari-server \
+  bound_service_account_namespaces=inari \
+  policies=inari-cluster-secrets \
+  ttl=1h
+```
+
+Corresponding chart values (`inari-server`):
+
+```yaml
+vault:
+  addr: "https://vault.example.org"
+  kvMount: secret
+  authMethod: kubernetes
+  role: inari-server
+```
+
+Verify: `vault read auth/kubernetes/role/inari-server`, then register a test cluster and confirm the ExternalSecret in the tenant cluster becomes ready.
+
+### Automating it
+
+Steps 2–3 (auth method + cluster config) are platform-level and belong wherever the Vault instance itself is provisioned (Terraform/OpenTofu Vault provider, or the Vault cluster's own GitOps). Steps 1+4 are Inari-specific and idempotent; if you want them GitOps-managed, run them from a Job with a narrowly-scoped **provisioner token** (never an admin token):
+
+```bash
+# provisioner policy: only what the Job needs
+vault policy write inari-vault-provisioner - <<'EOF'
+path "sys/policies/acl/inari-cluster-secrets" { capabilities = ["create", "update", "read"] }
+path "auth/kubernetes/role/inari-server"      { capabilities = ["create", "update", "read"] }
+EOF
+vault token create -policy=inari-vault-provisioner -ttl=720h -renewable=true
+```
+
+The Job mounts that token (ESO-delivered) and runs `vault policy write` + `vault write auth/kubernetes/role/...` — safe to re-run on every sync. Keep the token TTL finite and rotate it like any platform credential.
+
+
 
 For development, the same charts install into a kind cluster via the dev-env script in `inari-helm-charts` (`hack/dev-up.sh`). The dev variant disables cosign verification and uses self-signed certs.
 
@@ -54,6 +122,7 @@ For development, the same charts install into a kind cluster via the dev-env scr
 - [ ] Agent gateway endpoint on a dedicated hostname with TLS
 - [ ] Keycloak admin credentials rotated out of install-time defaults
 - [ ] Audit log export target configured
+- [ ] Platform Vault configured for the registration exchange (Kubernetes auth role `inari-server`) — see above
 - [ ] (Zone vending only) management account connected — see [Tenant Zones](tenant-zones.md)
 
 ## Uninstall
