@@ -49,3 +49,11 @@ A UI extension that needs data beyond host APIs pairs with a [backend extension]
 ## Runtime registration
 
 Installed extensions are registered at runtime from the extension registry (**Extensions** page in the console). Remotes load lazily; a failing remote is isolated to its slot and does not break the shell.
+
+The control plane serves `remoteEntry.js` itself: operators register your
+extension's `remoteEntry` release URL (or OCI artifact) via
+`POST /api/v1/tenants/{org}/extensions/ui`, and the registry hands the
+console a server-relative URL back. Publish checksum-pinned or OCI-packaged
+remotes so hubs can enforce integrity (cosign verification on OCI sources is
+enabled hub-side via `INARI_UI_EXTENSION_VERIFY`). See the
+[operator guide](../operator-guide/extensions.md) for the install flow.
