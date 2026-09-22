@@ -70,9 +70,15 @@ Notes:
 - Listing: `GET /api/v1/tenants/$ORG/extensions/ui`. Removal:
   `DELETE /api/v1/tenants/$ORG/extensions/ui/<name>` (a paired backend row is
   kept; a UI-only row is deleted).
-- Users without `requiredPermission` neither see the extension's slots nor
-  can fetch its `remoteEntry.js` (the asset route enforces the FGA invoke
-  relation server-side).
+- Users without `requiredPermission` do not see the extension's slots: the
+  console reads its effective invoke verbs from
+  `GET /api/v1/tenants/<org>/authz/self/extensions` and hides denied remotes.
+  The `remoteEntry.js` asset route itself is unauthenticated (the Module
+  Federation runtime loads entries via `<script>` injection, which carries
+  no `Authorization` header); the payload is public client-side JavaScript,
+  integrity-pinned hub-side, and disabled extensions are not served.
+- On upsert, omitting `enabled` preserves the stored value — re-registration
+  never silently re-enables a disabled extension.
 
 ## Verifying the install
 
