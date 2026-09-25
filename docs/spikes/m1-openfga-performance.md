@@ -23,7 +23,7 @@ Inari puts OpenFGA (Zanzibar ReBAC) on the authorization hot path from v1: the g
 **Latency — measured (shared container, no production tuning):**
 
 | Operation | Datastore | Conc | p50 | p95 | p99 | Notes |
-|---|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- | --- |
 | Check `editor` on resource_instance | memory | 20 | 124 ms | 302 ms | **423 ms** | envelope, 1× |
 | Check `viewer` on resource_instance | memory | 20 | 423 ms | 1,033 ms | **1,201 ms** | union over editor + parent chain |
 | ListObjects `viewer` resource_instance | memory | 20 | 239 ms | 454 ms | **569 ms** | 5k objects |

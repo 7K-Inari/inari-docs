@@ -5,7 +5,7 @@ How extensions are packaged, signed, distributed, and governed (plan §5.8, §5.
 ## Packaging
 
 | Part | Artifact | Distribution |
-|---|---|---|
+| --- | --- | --- |
 | Backend plugin | Container image (go-plugin sidecar) | OCI registry, cosign-signed, checksum in `plugin.yaml` verified at load |
 | UI remote | `remoteEntry.js` bundle | Served via the backend from an OCI artifact, same signing pipeline |
 | Manifest | `plugin.yaml` (name, version, protocol/contract version, slots/endpoints, checksums) | Inside the OCI artifact |

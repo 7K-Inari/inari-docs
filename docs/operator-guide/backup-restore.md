@@ -5,7 +5,7 @@ The control plane is recoverable from backups alone. Restorability is an M0 exit
 ## What must be backed up
 
 | Component | Contents | Method |
-|---|---|---|
+| --- | --- | --- |
 | PostgreSQL | Control-plane state: tenants, clusters, catalog, resource instances, audit events, outbox | Scheduled `pg_dump` (or WAL + base backup for PITR) to object storage |
 | OpenFGA store | Authorization model + relationship tuples | Store export; **also re-derivable** — the periodic reconciler re-derives tuples from PostgreSQL, so a tuple restore is a fallback, not a requirement |
 | Keycloak config | `inari` realm, Organizations, clients, IdP brokering, group mappings | Realm export (JSON) + Keycloak DB backup; per-cluster client secrets are rotatable, not backed up |
@@ -36,6 +36,6 @@ Backup jobs are installed by the platform baseline chart and write to the object
 
 A full restore drill runs at least once per milestone and after any change to the backup jobs. Drill results are recorded in the ops section (see the [upgrade/downgrade drill](../ops/upgrade-downgrade-drill.md) for the format).
 
-:::note Tenant-side state
-Tenant clusters keep reconciling autonomously through a control-plane outage (pull-never-push, desired-state design). A control-plane restore does not touch tenant workloads; agent resync reconciles any status gap on reconnect.
-:::
+!!! note "Tenant-side state"
+
+    Tenant clusters keep reconciling autonomously through a control-plane outage (pull-never-push, desired-state design). A control-plane restore does not touch tenant workloads; agent resync reconciles any status gap on reconnect.

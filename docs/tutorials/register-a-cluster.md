@@ -11,9 +11,9 @@ Console → **Clusters → Register cluster**:
 1. Name it and set labels (`env`, `region`, `tenant`, …) — labels drive ClusterSet targeting later.
 2. Submit. The control plane issues a **one-time, TTL'd registration token** and shows an install manifest with the token embedded.
 
-:::warning Token handling
-The token is shown once. It is single-use and expires (default TTL is short). If it lapses, re-issue from the cluster detail page — never post it anywhere persistent.
-:::
+!!! warning "Token handling"
+
+    The token is shown once. It is single-use and expires (default TTL is short). If it lapses, re-issue from the cluster detail page — never post it anywhere persistent.
 
 ## 2. Install the agent
 
@@ -48,7 +48,7 @@ Pre-existing resources stay `observe-only` until you explicitly reclassify them 
 ## Troubleshooting
 
 | Symptom | Fix |
-|---|---|
+| --- | --- |
 | Cluster stuck `Pending` | Token expired/used — re-issue and reinstall |
 | Agent crash-looping with auth errors | OIDC client delivery failed — check ESO is running in the cluster; re-install pulls a fresh secret |
 | Stream connects then drops | Corporate egress proxy interfering with HTTP/2 — see the proxy configuration guidance in the plan §5.3 |

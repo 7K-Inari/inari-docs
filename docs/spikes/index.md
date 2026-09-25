@@ -5,7 +5,7 @@ Time-boxed research spikes that gate milestone exits. Each report ends with a go
 ## M1 exit spikes (plan §12.2 items 6–8)
 
 | Spike | Report | Track | Recommendation |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | OpenFGA performance at target scale | [m1-openfga-performance](./m1-openfga-performance.md) | A — real execution (local OpenFGA v1.18.3 + synthetic tuple load) | **GO-WITH-CONDITIONS** |
 | KRO `v1alpha1` upgrade drill | [m1-kro-upgrade-drill](./m1-kro-upgrade-drill.md) | B — reproducible harness, preliminary findings | **GO-WITH-CONDITIONS** |
 | Bundle-managed ArgoCD lifecycle | [m1-argocd-bundle-lifecycle](./m1-argocd-bundle-lifecycle.md) | B — reproducible harness, preliminary findings | **GO-WITH-CONDITIONS** |

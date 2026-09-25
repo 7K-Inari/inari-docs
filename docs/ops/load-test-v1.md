@@ -15,7 +15,7 @@
 ### Scenarios
 
 | # | Scenario | Load profile | Pass criteria |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | S1 | Steady state | 100 agents connected; 5k instances reporting status at production-like rates | API p95 within SLO; zero stream drops over 1h |
 | S2 | Concurrent stream peak | 50 concurrent agent streams actively syncing (remaining idle-connected) | Agent-gateway CPU/memory within budget; no queue overflow |
 | S3 | Agent churn | Rolling disconnect/reconnect storms (10% of agents cycling every 5 min), incl. checksum resync on reconnect | Resync completes per agent; no duplicate/lost commands (at-least-once + idempotency); control-plane latency stays in envelope |
@@ -28,14 +28,14 @@ API p50/p95/p99 per route class; agent-stream establish rate, drop count, resync
 
 ## Results
 
-:::info Coordination note
-Results below are filled from the executed runs (harness: `inari-server/test/load`, run tags referenced per table). Placeholders remain until the final pre-v1.0 run is recorded; earlier iteration results are kept in the run archive linked from `inari-server`.
-:::
+!!! info "Coordination note"
+
+    Results below are filled from the executed runs (harness: `inari-server/test/load`, run tags referenced per table). Placeholders remain until the final pre-v1.0 run is recorded; earlier iteration results are kept in the run archive linked from `inari-server`.
 
 ### S1 — Steady state (run: `<run-tag>`, date: TBD)
 
 | Metric | Target | Result | Pass? |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Catalog/resources API p95 | within SLO | TBD | TBD |
 | Stream drops over 1h | 0 | TBD | TBD |
 | Status event throughput | sustained | TBD | TBD |
@@ -43,7 +43,7 @@ Results below are filled from the executed runs (harness: `inari-server/test/loa
 ### S2 — 50 concurrent streams (run: `<run-tag>`, date: TBD)
 
 | Metric | Target | Result | Pass? |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Concurrent active streams | 50 | TBD | TBD |
 | Agent-gateway CPU / memory | within budget | TBD | TBD |
 | Command ack p95 | within SLO | TBD | TBD |
@@ -51,7 +51,7 @@ Results below are filled from the executed runs (harness: `inari-server/test/loa
 ### S3 — Agent churn (run: `<run-tag>`, date: TBD)
 
 | Metric | Target | Result | Pass? |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Resync completion | 100% | TBD | TBD |
 | Duplicate commands after reconnect | 0 visible effects (idempotent) | TBD | TBD |
 | API p95 during churn | within SLO | TBD | TBD |
@@ -59,14 +59,14 @@ Results below are filled from the executed runs (harness: `inari-server/test/loa
 ### S4 — Cold start (run: `<run-tag>`, date: TBD)
 
 | Metric | Target | Result | Pass? |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 100 streams established | all | TBD | TBD |
 | Fleet-wide resync duration | recorded | TBD | TBD |
 
 ### S5 — API under load (run: `<run-tag>`, date: TBD)
 
 | Metric | Target | Result | Pass? |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | API p50 / p95 / p99 | within SLO | TBD | TBD |
 | OpenFGA `Check` p99 | consistent with [M1 spike](../spikes/m1-openfga-performance.md) | TBD | TBD |
 

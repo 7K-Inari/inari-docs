@@ -7,9 +7,9 @@
 
 This document applies STRIDE to each of Inari's trust zones. It records the threats we have identified, the mitigations built into v1.0, and the residual risks we accept or defer. It is the input to the M4 security review and the baseline for future reviews.
 
-:::warning Penetration testing
-This threat model is a design-time review. A third-party **penetration test is required before Inari sells services** or runs production tenant workloads beyond pilot scope (plan §12.2/10, §12.3/13). The pen-test should exercise every trust boundary below, with special attention to the agent channel and the extension proxy path.
-:::
+!!! warning "Penetration testing"
+
+    This threat model is a design-time review. A third-party **penetration test is required before Inari sells services** or runs production tenant workloads beyond pilot scope (plan §12.2/10, §12.3/13). The pen-test should exercise every trust boundary below, with special attention to the agent channel and the extension proxy path.
 
 ## Trust zones
 
@@ -51,7 +51,7 @@ flowchart TB
 Boundary crossings:
 
 | # | Crossing | Mechanism |
-|---|---|---|
+| --- | --- | --- |
 | B1 | User → platform (console/CLI/API) | OIDC JWT from Keycloak, per-service audiences, OpenFGA checks |
 | B2 | Agent → agent gateway | Outbound-only gRPC stream, short-lived per-cluster JWT with hardcoded `cluster_id` |
 | B3 | Registration bootstrap | One-time, TTL'd registration token exchanged for a per-cluster OIDC client |
@@ -66,7 +66,7 @@ Boundary crossings:
 `inari-server` (API gateway/BFF, agent gateway, catalog, orchestrator, audit, extension host, fleet manager, policy service), Keycloak, PostgreSQL/NATS, OpenFGA, `inari-operator`, plugin sidecars.
 
 | STRIDE | Threat | v1.0 mitigation | Residual risk |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **Spoofing** | Forged user/service identity | OIDC JWT validation at gateway; per-service `aud` client scopes block token reuse; Full Scope Allowed off on public clients | Compromised Keycloak admin — see EoP |
 | **Tampering** | Mutation of control-plane state or desired state in tenant Git | All mutations flow as desired state (GitOps/CR-based); GitHub App auth via ESO; OCI-signed catalog artifacts (cosign) | Tenant Git repo compromise is a tenant-side boundary (Zone 3) |
 | **Repudiation** | Actor denies an action | Immutable append-only audit log (outbox-written) for every action incl. impersonation and agent syncs; exportable | Audit volume growth; retention policy is operator-owned |
@@ -79,7 +79,7 @@ Boundary crossings:
 The outbound-only bidirectional gRPC stream between `inari-agent` and the agent gateway (argocd-agent model), plus the registration bootstrap.
 
 | STRIDE | Threat | v1.0 mitigation | Residual risk |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **Spoofing** | Rogue cluster enrollment; agent impersonating another cluster | One-time TTL'd registration tokens (optionally double opt-in approval); identity from short-lived OIDC JWTs with **hardcoded `cluster_id` claim** — agent ID comes from the token claim, never self-asserted; revocation = disable the Keycloak client | mTLS/SPIFFE client certs are a v2 hardening option (plan §4.3) |
 | **Tampering** | Command injection over the stream | Typed protobuf contract (`inari-api`) with contract CI; idempotent handlers; checksum-based resync | — |
 | **Repudiation** | Cluster denies executing a command | Audit events for command dispatch and agent syncs | — |
@@ -92,7 +92,7 @@ The outbound-only bidirectional gRPC stream between `inari-agent` and the agent 
 The tenant's clusters (`inari-agent`, tenant-local ArgoCD, ESO, KRO, operators) and workloads.
 
 | STRIDE | Threat | v1.0 mitigation | Residual risk |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **Spoofing** | User bypassing console to hit the tenant API server directly | Structured JWT authentication (k8s `AuthenticationConfiguration`) trusts the platform Keycloak with CEL claim mapping (`organization` claim required); RBAC binds Keycloak groups to tenant ClusterRoles | Direct API access is *intended* (kubelogin); posture depends on tenant not weakening `AuthenticationConfiguration` |
 | **Tampering** | Out-of-band mutation of Inari-managed resources | Desired state in platform-owned `<tenant>-inari-state` repo; drift detection (report-only in v1) surfaces divergence | Auto-remediation is v1.x — drift can persist until an operator acts |
 | **Repudiation** | Tenant actor denies a change | Audit records real + impersonated identities; GitOps commit trail in tenant state repo | — |
@@ -107,7 +107,7 @@ The tenant's clusters (`inari-agent`, tenant-local ArgoCD, ESO, KRO, operators) 
 OIDC web-identity federation from the platform cluster (and tenant clusters) into tenant AWS accounts, plus the management account used by the Tenant Zone Factory.
 
 | STRIDE | Threat | v1.0 mitigation | Residual risk |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **Spoofing** | Forged web-identity token; wrong-account assumption | Roles trust the cluster OIDC issuer, conditioned on `sub` (the Crossplane/agent service account) and `aud = sts.amazonaws.com`; optional `ExternalId`; validation = dry-run assume-role | — |
 | **Tampering** | Privilege change on the onboarding role | Role is tenant-owned; bootstrap role is least-privilege (scoped to services Inari manages); tenant revokes by deleting the role | Inari cannot detect tenant-side role weakening — documented for tenants |
 | **Repudiation** | Actions in AWS denied | CloudTrail baseline policy pack applied to vended zones; every Inari-side action audited | BYO accounts rely on tenant CloudTrail posture |
@@ -118,7 +118,7 @@ OIDC web-identity federation from the platform cluster (and tenant clusters) int
 ## Cross-cutting: supply chain
 
 | Threat | Mitigation |
-|---|---|
+| --- | --- |
 | Tampered catalog artifacts | OCI-signed artifacts (cosign); versioned channels `stable`/`incubating`; CI tests per package |
 | Tampered plugin binaries | Checksum verification at handshake; versioned contract |
 | Compromised release images | SLSA provenance on release images; cosign signatures |
