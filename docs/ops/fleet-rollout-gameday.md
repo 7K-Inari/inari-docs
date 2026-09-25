@@ -15,7 +15,7 @@ Each rollout used health-gated progression plus one approval gate between canary
 ## Injected failures
 
 | # | Injection | Expected behavior |
-|---|---|---|
+| --- | --- | --- |
 | F1 | Canary cluster made unhealthy mid-rollout (agent status forced `Degraded`) | Rollout halts at the health gate; does not enter wave-1; operator notified |
 | F2 | Approval gate rejected at wave-1 | Rollout stays paused; rejection audited; resume possible after re-approval |
 | F3 | Bad agent version detected in canary (smoke checks failing) | Rollback-to-snapshot restores the previous agent version in canary; fleet untouched beyond canary |
@@ -24,7 +24,7 @@ Each rollout used health-gated progression plus one approval gate between canary
 ## Results
 
 | Check | Result |
-|---|---|
+| --- | --- |
 | F1 — health gate halted progression | TBD |
 | F2 — rejection path audited & resumable | TBD |
 | F3 — rollback-by-snapshot restored canary | TBD |
@@ -32,6 +32,7 @@ Each rollout used health-gated progression plus one approval gate between canary
 | Happy path: both rollouts completed fleet-wide | TBD |
 | Rollback duration (canary) | TBD |
 
+<!-- markdownlint-disable-next-line MD036 -->
 _(Run date: TBD. Fill from the game-day execution; link dashboards/recordings here.)_
 
 ## Lessons & follow-ups

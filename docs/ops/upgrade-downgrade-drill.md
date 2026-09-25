@@ -20,9 +20,9 @@
 
 ## Observations (fill per drill)
 
-| Drill date | From → To → From | Upgrade issues | Downgrade issues | Verdict |
-|---|---|---|---|---|
-| TBD | v0.9.x → v1.0.0 → v0.9.x | TBD | TBD | TBD |
+| Drill date | From → To → From          | Upgrade issues | Downgrade issues | Verdict |
+|------------|---------------------------|----------------|------------------|---------|
+| TBD        | v0.9.x → v1.0.0 → v0.9.x  | TBD            | TBD              | TBD     |
 
 ## Follow-ups
 

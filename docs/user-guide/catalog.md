@@ -7,7 +7,7 @@ The catalog answers "what can I run here?" — per cluster, from what the cluste
 Every entry is a `CatalogItem` with an OpenAPI v3 schema, UI hints, a version, and visibility rules:
 
 | Source | What it is | Examples |
-|---|---|---|
+| --- | --- | --- |
 | **Discovered** | Capabilities the agent found in *this* cluster: CRDs, OLM operator descriptors, Crossplane XRDs/claims, KRO RGDs | `Crossplane provider-aws` you installed yesterday shows up automatically |
 | **Curated** | Golden-path packages from `inari-catalog`: KRO `ResourceGraphDefinitions` published as signed OCI artifacts on `stable`/`incubating` channels | "Web service with DNS+TLS", "PostgreSQL on AWS", "namespace-as-a-service" |
 | **Platform apps** | Helm/KRO packages and platform-scoped resources (Keycloak realm/client, DNS zone) running on the platform cluster | "Keycloak realm", "cert-manager" |

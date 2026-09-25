@@ -1,4 +1,5 @@
 # Inari — Internal Developer Platform
+
 ## Architecture, Development Plan & V1 Feature Set
 
 **Document type:** Foundational planning / architecture blueprint
@@ -21,7 +22,7 @@ Inari's architecture is a **hub-and-spoke control plane**:
 ### Key differentiators (validated against the market)
 
 | Differentiator | Evidence |
-|---|---|
+| --- | --- |
 | Agent-based **capability discovery** from tenant clusters → auto-generated catalog | No mainstream IDP (Backstage, Port, Cortex, Kratix, KubeVela, Qovery) does this; it directly mitigates "catalog rot," the most reported IDP failure mode |
 | **Native multi-tenancy** with per-tenant RBAC, IdP brokering, and tenant-scoped everything | Only Cycloid ("Child Organizations") ships native multi-tenancy; Backstage/Port/Cortex are team-level only |
 | **OIDC-first identity fabric** (Keycloak Organizations, per-service audiences, structured k8s auth) | Most IDPs bolt SSO on; Inari makes it the foundation |
@@ -31,9 +32,11 @@ Native multi-tenancy is near-absent from the portal market — Cycloid's "Child 
 | Everything runs **in the tenant's environment**; control plane is credential-free | Aligns with the argocd-agent/OCM zero-credentials-on-hub security posture |
 
 ### Naming note
+
 *Inari* (稲荷) — fitting for a platform that provisions and protects: the kitsune/fox motif is available for branding, and "Inari" is short, pronounceable, and currently unused by major cloud-native projects.
 
 ### Open source & business model (decided)
+
 Inari is **fully open source (Apache-2.0)** — no open-core feature gating, every capability ships in the open repos. The commercial model is **services** (consulting, support, managed operations), not product licensing.
 
 ---
@@ -43,7 +46,7 @@ Inari is **fully open source (Apache-2.0)** — no open-core feature gating, eve
 Every stated goal maps to a concrete architectural mechanism:
 
 | # | Goal | Implementation mechanism | Where |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | G1 | Portal to define platform configuration | `inari-ui` console + `inari-server` Admin API; platform config as versioned CRs on the platform cluster | §5.2, §8 |
 | G2 | Curated self-service catalog per tenant cluster | Catalog Service normalizes **discovered capabilities** + **curated packages** (KRO RGDs, Helm) into Catalog Items with OpenAPI-v3 schemas and UI hints; per-tenant visibility rules | §5.5 |
 | G3 | Tenant-cluster controller that gathers capabilities | `inari-agent`: watches CRDs, OLM CSVs, Crossplane XRDs/providers; streams `capability-update` events upstream | §5.3 |
@@ -62,6 +65,7 @@ Every stated goal maps to a concrete architectural mechanism:
 ## 3. Personas & Consolidated User Stories
 
 ### 3.1 Platform Engineer (platform operator/curator)
+
 1. Define development platform configuration in a portal.
 2. Curate a self-service catalog; control which items are visible to which tenants/clusters.
 3. Run a controller on tenant clusters that gathers capabilities.
@@ -75,11 +79,13 @@ Every stated goal maps to a concrete architectural mechanism:
 11. Create new Tenant Zones from the Platform zone: vend a new AWS organization account, provision a tenant Kubernetes cluster in it, and have the tenant-zone baseline (agent, ArgoCD, ESO, policy packs) installed and registered automatically.
 
 ### 3.2 Developer (tenant user)
+
 1. Install providers (operators, controllers, Crossplane providers) into connected clusters.
 2. Discover what can run on their AWS accounts and clusters from a generated catalog.
 3. See all their resources, connections, and integrations in one control plane.
 
 ### 3.3 Implicit third persona: Platform Admin / Security
+
 Identity lifecycle, tenant onboarding/offboarding, audit review, extension governance. Explicitly modeled because multi-tenancy makes security workflows first-class.
 
 ---
@@ -98,7 +104,7 @@ Identity lifecycle, tenant onboarding/offboarding, audit review, extension gover
 
 ### 4.2 System context (Diagram D1)
 
-![Inari system context and deployment view](diagrams/d1-system-context.png)
+*Diagram pending: Inari system context and deployment view (`diagrams/d1-system-context.png`).*
 
 Three trust zones:
 
@@ -109,7 +115,7 @@ Three trust zones:
 ### 4.3 Technology choices (summary ADR table)
 
 | Area | Decision | Rationale |
-|---|---|---|
+| --- | --- | --- |
 | Control-plane language | **Go** | Same ecosystem as k8s/client-go; single team competency |
 | API style | REST (OpenAPI, code-generated) + gRPC stream for agents | REST for console/CLI; gRPC for the typed, multiplexed agent channel |
 | Agent protocol | **Bidirectional gRPC stream**, CloudEvents-style envelope (eventid/resourceid, type, payload) | argocd-agent-proven: typed contract, HTTP/2 keepalive, multiplexing, works outbound-only through restrictive egress |
@@ -130,7 +136,7 @@ Three trust zones:
 
 ### 5.1 Topology at a glance
 
-```
+```text
 ┌─────────────────────────────── INARI PLATFORM ───────────────────────────────┐
 │  Platform Cluster (central)                                                  │
 │   ├─ inari-server  (API, console host, agent gateway, catalog, audit, authz) │
@@ -155,10 +161,10 @@ Three trust zones:
 
 One binary, strict module boundaries, each behind an internal interface so a module can be extracted later.
 
-![Control plane component architecture](diagrams/d2-control-plane.png)
+*Diagram pending: Control plane component architecture (`diagrams/d2-control-plane.png`).*
 
 | Module | Responsibility | Key notes |
-|---|---|---|
+| --- | --- | --- |
 | **API Gateway / BFF** | REST/OpenAPI surface for console & CLI; authn (OIDC JWT validation), coarse authz, rate limits | Gateway = coarse PEP (valid JWT, tenant claim); services = fine PEP |
 | **Tenancy & Identity** | Tenant (Keycloak Organization) lifecycle, teams/groups, membership sync, invitations | Tenant ID is a stable `org:<id>`; group paths `tenant-<slug>/<team>` drive k8s RBAC mapping |
 | **Cluster Registry** | Registered clusters, registration tokens, per-cluster identity, connection health | Cluster record holds cert/client identity + reported k8s version/labels — never a kubeconfig |
@@ -177,11 +183,11 @@ One binary, strict module boundaries, each behind an internal interface so a mod
 
 ### 5.3 Tenant agent — `inari-agent`
 
-![Agent registration and runtime flow](diagrams/d3-agent-flow.png)
+*Diagram pending: Agent registration and runtime flow (`diagrams/d3-agent-flow.png`).*
 
 A kubebuilder-built controller deployed by a single install manifest (or Helm) into a tenant cluster.
 
-**Lifecycle**
+#### Lifecycle
 
 1. **Register** — Platform engineer creates a cluster in the console → control plane issues a one-time, TTL'd **registration token** (Fleet/OCM pattern)[^1^][^2^]. Install manifest embeds the token. On first connect, the agent exchanges it for a **per-cluster Keycloak OIDC client** (`cluster-<id>`, client-credentials grant); the bootstrap token is forgotten. Client secret delivered to the cluster via ESO — never in git.
 2. **Connect** — Agent opens the outbound bidirectional gRPC stream (`EventStream`, the argocd-agent model)[^3^], authenticating with short-lived JWTs (`cluster_id` hardcoded claim). Ping/pong keepalive, backoff reconnect.
@@ -202,7 +208,7 @@ A kubebuilder-built controller deployed by a single install manifest (or Helm) i
 
 ### 5.4 Multi-tenancy & IAM/OIDC model
 
-![Multi-tenant IAM / OIDC model](diagrams/d4-iam-model.png)
+*Diagram pending: Multi-tenant IAM / OIDC model (`diagrams/d4-iam-model.png`).*
 
 **Tenancy = Keycloak Organization** in one `inari` realm.
 
@@ -211,7 +217,7 @@ A kubebuilder-built controller deployed by a single install manifest (or Helm) i
 - **Teams = groups** (`tenant-acme/platform-team`) — the vehicle for k8s RBAC mapping, not the tenant boundary.
 - **Per-tenant Keycloak realms/clients are self-service catalog resources**, reconciled by `inari-operator` (Keycloak Admin REST / Crossplane provider-keycloak), lifecycle-tied to the tenant. Tenant realms serve *workload* federation (tenant apps' own SSO) — never platform user identity.
 
-**Kubernetes user access (SSO to tenant clusters)**
+#### Kubernetes user access (SSO to tenant clusters)
 
 - Tenant API servers trust the platform Keycloak via **structured JWT authentication** (`AuthenticationConfiguration`, stable in k8s 1.34)[^6^][^7^]: issuer = `…/realms/inari`, audiences `["kubernetes"]`, CEL claim mapping (e.g., require the `organization` claim).
 - Users log in with `kubelogin` (`kubectl oidc-login`)[^8^]; tokens carry `groups`.
@@ -255,6 +261,7 @@ The platform cluster is both the **host of the control plane** and a **first-cla
 4. Bootstrap role is **least-privilege** (scoped to services Inari manages).[^13^] Tenant revokes by deleting the role.
 
 **Where Crossplane runs, and what "platform side" means.** There are two run contexts, both keyless:
+
 - **Platform cluster (Inari-operated)** — used by the Tenant Zone Factory (§5.12) and platform-scoped cloud resources. `ProviderConfig.spec.credentials.source: IRSA`: the provider pod's ServiceAccount is annotated with the platform bootstrap role ARN; the platform cluster's EKS OIDC issuer vends it a web-identity token, and it assumes the role via `sts:AssumeRoleWithWebIdentity`. To act **inside a tenant account**, the per-account ProviderConfig then role-chains into that account's onboarding role (which trusts the platform cluster's OIDC issuer, conditioned on `sub`/`aud`). Nothing long-lived is stored on either side.
 - **Tenant cluster (developer-installed from the catalog)** — manages the tenant's own AWS resources in their own account. If the tenant cluster is EKS in that account, this is plain IRSA against the *tenant cluster's* OIDC issuer; if the cluster is not EKS, the same web-identity flow applies, provided the cluster's OIDC issuer is publicly reachable (e.g., S3-hosted discovery document).
 
@@ -273,7 +280,7 @@ Azure/GCP later via the same `CloudAccount` abstraction (different trust mechani
 
 ### 5.9 Data model (core entities)
 
-```
+```text
 Organization (tenant) 1───n Team ─── n User(refs Keycloak)
 Organization 1───n Cluster ─── n Capability (discovered, versioned, managementMode: adopt|observe|ignore)
 Organization 1───n CloudAccount (aws: accountId, roleArn, externalId)
@@ -355,10 +362,10 @@ A platform-engineer-only, platform-scoped Catalog Item (`tenant-zone-aws`, packa
 
 Polyrepo under a single GitHub org, e.g. **`inari-dev`** (mirrors how k8s ecosystem projects scale: one repo per independently-versioned artifact). Naming convention: `inari-<part>`; the org prefix keeps repo names short.
 
-![Repository topology map](diagrams/d6-repo-map.png)
+*Diagram pending: Repository topology map (`diagrams/d6-repo-map.png`).*
 
 | # | Repo | Contents | Stack | Versioned artifact |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | 1 | **`inari-server`** | Control plane: REST API/BFF, agent gRPC gateway, tenancy, cluster registry, catalog service, orchestrator, cloud accounts, resources inventory, audit, approvals, notifications, extension host | Go, PostgreSQL, chi/Huma, NATS | Container image `inari/server` |
 | 2 | **`inari-agent`** | Tenant-cluster controller: registration/bootstrap, capability discovery watches, gRPC client, GitOps renderer, ArgoCD command proxy, status streamer | Go, controller-runtime | Container image `inari/agent` + install manifests |
 | 3 | **`inari-operator`** | Platform-cluster operator: tenant Keycloak realms/clients, platform namespaces, DNS/cert shared resources, platform app installs | Go, controller-runtime | Container image `inari/operator` |
@@ -385,7 +392,7 @@ MoSCoW prioritization. **M = v1.0 must**, S = v1.0 should (first to slip), C = v
 ### 7.1 Platform Engineer features
 
 | Feature | Priority |
-|---|---|
+| --- | --- |
 | Platform configuration portal (org settings, tenancy, IdP, policies) | M |
 | Cluster registration workflow (token issuance, install manifest/Helm, connection health) | M |
 | Agent-based capability discovery (CRDs, OLM descriptors, XRDs, KRO RGDs, versions) | M |
@@ -425,7 +432,7 @@ MoSCoW prioritization. **M = v1.0 must**, S = v1.0 should (first to slip), C = v
 ### 7.2 Developer features
 
 | Feature | Priority |
-|---|---|
+| --- | --- |
 | SSO login via platform OIDC; tenant/team scoping everywhere | M |
 | Per-cluster "what can I run here?" catalog (discovered + curated, RBAC-filtered) | M |
 | Schema-driven deploy wizard (RJSF forms from CRD/RGD schemas, validation, locked fields) | M |
@@ -460,7 +467,7 @@ All ten recommendations below are committed: P0/P1 items are in §7.1/§7.2 as *
 
 ## 8. UI Outline
 
-![UI outline and information architecture](diagrams/d5-ui-architecture.png)
+*Diagram pending: UI outline and information architecture (`diagrams/d5-ui-architecture.png`).*
 
 ### 8.1 Approach
 
@@ -472,7 +479,7 @@ All ten recommendations below are committed: P0/P1 items are in §7.1/§7.2 as *
 
 ### 8.2 Information architecture (navigation)
 
-```
+```text
 ├── Overview (dashboard: my tenants, recent resources, pending approvals, cluster health)
 ├── Catalog
 │    ├── Browse (filters: cluster compatibility, category, source: curated/discovered/platform)
@@ -515,7 +522,7 @@ All ten recommendations below are committed: P0/P1 items are in §7.1/§7.2 as *
 ### 8.4 Extension slots (v1)
 
 | Slot | Example content |
-|---|---|
+| --- | --- |
 | `NavItem` | Extension entry in sidebar |
 | `CatalogCard` | Extra badges/actions on catalog items (e.g., cost estimate) |
 | `ClusterTab` | ArgoCD health tab, observability deep-links |
@@ -530,6 +537,7 @@ All ten recommendations below are committed: P0/P1 items are in §7.1/§7.2 as *
 Assumptions: 4–6 engineers, polyrepo, 2-week iterations. Milestones are capability-gated, not date-gated; weeks are indicative for a 5-engineer team (~30 weeks to v1.0).
 
 ### M0 — Foundations (wks 1–5)
+
 - Repo scaffolding (server, agent, ui, api, charts), CI/CD, signing, dev env (kind-based local platform cluster)
 - **Day-0 bootstrap:** scripted first-platform-cluster install via `inari-helm-charts` (Inari never requires Inari to install); **backup/restore runbook** for PostgreSQL, OpenFGA store, Keycloak config, NATS
 - Keycloak integration: `inari` realm, Organizations, console SSO login, tenant switcher
@@ -537,6 +545,7 @@ Assumptions: 4–6 engineers, polyrepo, 2-week iterations. Milestones are capabi
 - **Exit:** log in via OIDC, create org/teams, OpenFGA checks enforced on all API routes, empty shell UI with tenant context, **control plane restored from backup in a DR drill**
 
 ### M1 — Agent & Clusters (wks 4–11)
+
 - `inari-api` protobuf: EventStream, registration, capability events
 - Registration flow (one-time token → per-cluster OIDC client; ESO delivery)
 - Agent: connect/heartbeat/resync; capability discovery watches (CRDs, OLM, XRDs)
@@ -547,6 +556,7 @@ Assumptions: 4–6 engineers, polyrepo, 2-week iterations. Milestones are capabi
 - **Exit:** kind tenant cluster registers, capabilities stream into the console; **all three spike reports delivered with go/no-go recommendations**
 
 ### M2 — Catalog & First Deploy (wks 10–17)
+
 - Catalog service (normalization, visibility policies); RJSF deploy wizard
 - Orchestrator: RGD instance render → tenant Git → tenant-local ArgoCD Application; status stream back
 - `inari-catalog` seed: 4–6 golden-path KRO packages (namespace-as-a-service, web-service+DNS+TLS, s3-backed app)
@@ -554,6 +564,7 @@ Assumptions: 4–6 engineers, polyrepo, 2-week iterations. Milestones are capabi
 - **Exit:** end-to-end golden path: register cluster → browse catalog → deploy → watch health in console
 
 ### M3 — Cloud, Platform Cluster & Governance (wks 16–23)
+
 - AWS account onboarding (web-identity role, validation, ProviderConfig materialization) + Crossplane-based packages (PostgreSQL/S3)
 - Platform cluster + `inari-operator` (Keycloak realm/client resources, DNS via ExternalDNS, tenant namespaces); platform apps catalog (Keycloak, cert-manager, ESO, ArgoCD)
 - Approvals, RBAC mapping UX, notifications; impersonation for automation
@@ -563,6 +574,7 @@ Assumptions: 4–6 engineers, polyrepo, 2-week iterations. Milestones are capabi
 - **Exit:** tenant self-serves a Keycloak realm + AWS Postgres; a new Tenant Zone can be vended from the console; approvals and policy guardrails enforced; full audit trail
 
 ### M4 — Extensibility, Templates & Hardening (wks 22–30)
+
 - `inari-plugin-sdk` + extension host + `/api/extensions/*` proxy; `inari-ext-argocd` reference extension
 - UI Module Federation remotes + blueprint slots; `inari-ui-plugin-sdk` + dev harness
 - Scaffolding/templates; CLI v1; docs site; scorecards v1 (capability-fed readiness rules)
@@ -571,11 +583,13 @@ Assumptions: 4–6 engineers, polyrepo, 2-week iterations. Milestones are capabi
 - **Exit:** v1.0 — a third party can write an extension; a pilot team runs production workloads
 
 ### v1.x committed schedule (all recommended additions included)
+
 - **v1.1** — scorecards (capability-fed readiness rules), environment lifecycle/TTL, preview/ephemeral environments
 - **v1.2** — per-tenant cost visibility (AWS CUR/OpenCost), adoption/usage dashboards, observability deep-links, self-service secrets-store onboarding
 - **Beyond** — multi-cloud providers, Control Tower/AFT coexistence
 
 ### Workstream swimlanes (parallelizable)
+
 - **WS-Control** (2 eng): server modules, tenancy, catalog, orchestrator
 - **WS-Agent** (1–2 eng): agent, protocol, GitOps integration
 - **WS-UI** (1–2 eng): console, design system, schema forms, extension slots
@@ -586,7 +600,7 @@ Assumptions: 4–6 engineers, polyrepo, 2-week iterations. Milestones are capabi
 ## 10. Risks & Mitigations
 
 | Risk | Impact | Mitigation |
-|---|---|---|
+| --- | --- | --- |
 | Scope creep (most-cited IDP killer) | v1 never ships | Milestone exit gates; defer list enforced; pilot tenant from M2 |
 | KRO API maturity (`v1alpha1`) | Breaking changes in packaging format | Isolate behind `CatalogItem` abstraction; pin kro versions; track kro's EKS-managed-capability trajectory |
 | Catalog rot | Differentiator lost | Catalog is machine-generated by design; curated packages are versioned OCI artifacts with CI tests |
@@ -603,7 +617,7 @@ Assumptions: 4–6 engineers, polyrepo, 2-week iterations. Milestones are capabi
 ## 11. Decisions Log (open questions — resolved)
 
 | # | Question | Decision | Applied in |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 1 | GitOps: bring-your-own vs bundled? | **Bundle-managed by default** — the agent installs and lifecycle-manages tenant-local ArgoCD as part of the tenant-zone baseline; **BYO flag** adopts an existing installation (version-skew policy documented) | §5.3 |
 | 2 | Tenant Git model | **Platform-owned `<tenant>-inari-state` repo per tenant** holds rendered instances; application repos untouched; PR-vs-direct-commit stays a per-tenant policy | §5.3 |
 | 3 | Licensing/governance | **Fully open source (Apache-2.0), no open-core gating** — sell services (consulting, support, managed ops), not product | §1 |
@@ -621,7 +635,7 @@ Topics to settle *before* or *during* early implementation. Nothing here invalid
 **Status: all five recommendations applied** — baked into §5.3 (git auth, brownfield modes, footprint budget, network stance), §5.9 (data model), and §9 (M0 bootstrap/DR, M4 scale envelope). The table remains as the decision record.
 
 | # | Topic | Why it blocks | Recommendation |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 1 | **Day-0 bootstrap & DR** ("who watches the watcher"): how the first platform cluster + control plane is installed; backup/restore of PostgreSQL, OpenFGA store, Keycloak config, NATS | Inari must not require Inari to install; no tenant onboards before restore is tested | `inari-helm-charts` + documented bootstrap script; tested backup/restore runbook as an M0 exit criterion |
 | 2 | **Git provider matrix & git auth**: GitHub-only at v1? GitLab/self-hosted timing? Where agent git-write credentials live | Touches `inari-api` contracts and the agent | GitHub first (GitHub App credentials delivered via ESO — never PATs); GitLab in v1.x; provider abstraction in the orchestrator from day one |
 | 3 | **Brownfield adoption semantics**: what happens to pre-existing ArgoCD/operators/resources when a cluster registers | Undecided semantics become data-destroying edge cases | Three modes per resource: adopt (under management), observe-only (inventory, no mutation), ignore; default = observe-only |
@@ -631,7 +645,7 @@ Topics to settle *before* or *during* early implementation. Nothing here invalid
 ### 12.2 Research / spike during M0–M1
 
 | # | Topic | Question to answer |
-|---|---|---|
+| --- | --- | --- |
 | 6 | **OpenFGA performance** — **scheduled: M1 exit spike** | Check/ListObjects p99 latency and tuple volume at target scale; PEP caching strategy |
 | 7 | **KRO `v1alpha1` upgrade drill** — **scheduled: M1 exit spike** | Simulate an RGD API break; prove the `CatalogItem` abstraction shields tenants; confirm the raw-CRD fallback path |
 | 8 | **Bundle-managed ArgoCD lifecycle** — **scheduled: M1 exit spike** | Version-upgrade path for agent-managed ArgoCD; BYO detection/adoption flow (Decision 1 consequence) |
@@ -643,7 +657,7 @@ Topics to settle *before* or *during* early implementation. Nothing here invalid
 None of the below is v1/v1.x work. Each item lists the trigger that pulls it into the v2 plan.
 
 | # | Topic | Trigger to act |
-|---|---|---|
+| --- | --- | --- |
 | 11 | **Control-plane downtime posture as a product claim** — agents reconcile autonomously through partitions | Make it a tested, documented claim before using it in services marketing/SLOs |
 | 12 | **Compliance & data residency** — tenants export metadata only; SOC2 timeline | Gates enterprise *sales*, not code — start early if services target enterprises |
 | 13 | **Community hygiene** — "Inari" trademark/domain/GitHub-org availability, DCO vs CLA, SECURITY.md + disclosure policy, supported-versions policy | Before public launch; trivial now, painful after |

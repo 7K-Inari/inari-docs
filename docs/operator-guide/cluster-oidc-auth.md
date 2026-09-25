@@ -39,7 +39,7 @@ jwt:
 These strings are the shared contract between token issuance (inari-server), cluster authentication (this file), and RBAC materialization (`rbacmaterialize`). Change them only together:
 
 | Contract | Value |
-|---|---|
+| --- | --- |
 | Groups claim | `groups`, full Keycloak group paths with leading slash, e.g. `/tenant-acme/platform-team` |
 | Group mapping | verbatim — no prefix added or stripped by the API server |
 | Organization claim | `organization` (multivalued); CEL rule pins it to the tenant alias |

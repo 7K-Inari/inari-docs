@@ -16,7 +16,7 @@ Any fleet-wide change runs as a **Rollout**: install/upgrade an operator or Cros
 A rollout defines:
 
 | Field | Meaning |
-|---|---|
+| --- | --- |
 | `target` | What is changing: capability, policy pack, agent version, or catalog version (+ target version) |
 | `stages[]` | Ordered stages; each selects a ClusterSet and sets `maxConcurrency` (count or %) |
 | `gates` | Optional before/after-stage gates: timed wait or approval (wired into the Approvals module) |

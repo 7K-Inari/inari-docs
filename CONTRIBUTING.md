@@ -1,6 +1,6 @@
 # Contributing to inari-docs
 
-All site content lives in `docs/` (markdown; Docusaurus docs root). Edit files, open a PR — CI builds the site to verify.
+All site content lives in `docs/` (markdown; MkDocs docs root). Edit files, open a PR — CI builds the site to verify.
 
 ## When to write an ADR
 

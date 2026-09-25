@@ -12,7 +12,7 @@ Backend extensions are plugins that run beside `inari-server` over a **versioned
 
 Plugin HTTP endpoints surface through the control plane's authenticated reverse-proxy path (the ArgoCD proxy-extension pattern):
 
-```
+```text
 POST /api/extensions/<name>/<your-path>
        │  1. OIDC JWT validated (gateway)
        │  2. OpenFGA check: extensions, invoke, <name>

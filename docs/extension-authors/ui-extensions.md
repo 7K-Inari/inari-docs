@@ -7,7 +7,7 @@ The console is a **Module Federation host**: first-party pages are internal remo
 You do not render free-form into the console. You register against **typed extension-point blueprints** (Backstage new-frontend style), declared in `inari-ui-plugin-sdk`:
 
 | Slot | What you provide | Example |
-|---|---|---|
+| --- | --- | --- |
 | `NavItemBlueprint` | Sidebar entry | "ArgoCD" nav item |
 | `CatalogCardBlueprint` | Badges/actions on catalog items | Cost estimate badge |
 | `ClusterTabBlueprint` | Extra tab on cluster detail | ArgoCD health tab, observability deep-links |
@@ -23,7 +23,7 @@ Shared React singletons mean your remote uses the host's React, router, and desi
 inari extension init --ui-only my-cards
 ```
 
-```
+```text
 my-cards/
   src/
     index.ts          # registers blueprints with the host API

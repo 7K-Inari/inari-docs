@@ -49,7 +49,7 @@ Control-plane automation acts on your cluster via **impersonation** of tenant-sc
 ## Troubleshooting
 
 | Symptom | Likely cause / fix |
-|---|---|
+| --- | --- |
 | `error: interactiveMode must be specified` | Old kubeconfig rendered before the exec config carried `interactiveMode` — re-run `inari cluster kubeconfig` |
 | `error: You must be logged in to the server (Unauthorized)` | Token rejected by the API server: expired (re-run `kubectl oidc-login`), missing `organization` claim (confirm you belong to the tenant), or the cluster's `AuthenticationConfiguration` doesn't trust the `inari` issuer/audiences |
 | `oidc: required claim ... / token organization does not match this tenant` | You are not a member of the tenant's Keycloak Organization, or the cluster's CEL rule pins a different tenant alias |

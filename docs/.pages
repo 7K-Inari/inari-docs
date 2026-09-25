@@ -1,0 +1,12 @@
+arrange:
+  - index.md
+  - architecture
+  - user-guide
+  - operator-guide
+  - extension-authors
+  - tutorials
+  - adr
+  - security
+  - spikes
+  - ops
+  - ...

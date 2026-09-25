@@ -6,18 +6,18 @@ Documentation for the **Inari** multi-tenant Internal Developer Platform: docs s
 
 ## Quickstart — writing docs locally
 
-The site is built with [Docusaurus](https://docusaurus.io/). **All content lives in `docs/`** — that folder *is* the docs root, so you edit markdown in place and it shows up on the site.
+The site is built with [MkDocs](https://www.mkdocs.org/) ([Material theme](https://squidfunk.github.io/mkdocs-material/)). **All content lives in `docs/`** — that folder *is* the docs root, so you edit markdown in place and it shows up on the site.
 
 ```bash
-npm ci          # first time only
-npm start       # dev server at http://localhost:3000 with hot reload
+pip install -r requirements-docs.txt   # first time only (use a venv)
+mkdocs serve                           # dev server at http://localhost:8000 with hot reload
 ```
 
 Other commands:
 
 ```bash
-npm run build   # static build into build/ (same as CI)
-npm run serve   # serve the production build locally
+mkdocs build          # static build into site/ (same as CI)
+mkdocs build --strict # what CI runs — warnings (broken links, nav gaps) fail the build
 ```
 
 ### Where things go
@@ -32,15 +32,14 @@ npm run serve   # serve the production build locally
 | `docs/security/` | Security docs: threat model per trust zone, review artifacts |
 | `docs/adr/` | Architecture Decision Records (see [CONTRIBUTING.md](CONTRIBUTING.md)) |
 
-Sidebar labels and ordering are controlled by `_category_.json` files in each folder — you don't need to touch `sidebars.ts` when adding pages.
+Section labels and ordering are controlled by `.pages` files in each folder (and the root `docs/.pages`) — you don't need to touch `mkdocs.yml` when adding pages.
 
 ## CI & deployment
 
-`.github/workflows/deploy.yml` builds the site on every PR and push to `main`, and deploys `build/` to **GitHub Pages** via the official `actions/deploy-pages` action (site: <https://7k-inari.github.io/inari-docs/>).
+- **PRs** (`.github/workflows/docs-ci.yml`): markdownlint on `docs/` plus a strict MkDocs build (`mkdocs build --strict`).
+- **Push to `main`** (`.github/workflows/docs-release.yml`): strict build, then the `site/` output is published to the org docs S3 bucket under the `inari/` prefix via the shared `release-docs.yml` reusable workflow.
 
-If GitHub Pages is not enabled on the repo, the build job still runs and passes, and the built site is available as a downloadable workflow artifact — only the `deploy` job requires Pages. To enable Pages: repo **Settings → Pages → Source: GitHub Actions**.
-
-Using a custom domain or different org? Update `url`/`baseUrl` in `docusaurus.config.ts`.
+Publishing requires these repo secrets: `DOCS_S3_ACCESS_KEY_ID`, `DOCS_S3_SECRET_ACCESS_KEY`, `APPDOCS_S3_BUCKET`, `DOCS_S3_ENDPOINT_URL`.
 
 ## Contributing
 

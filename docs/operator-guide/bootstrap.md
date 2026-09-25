@@ -110,8 +110,6 @@ vault token create -policy=inari-vault-provisioner -ttl=720h -renewable=true
 
 The Job mounts that token (ESO-delivered) and runs `vault policy write` + `vault write auth/kubernetes/role/...` — safe to re-run on every sync. Keep the token TTL finite and rotate it like any platform credential.
 
-
-
 For development, the same charts install into a kind cluster via the dev-env script in `inari-helm-charts` (`hack/dev-up.sh`). The dev variant disables cosign verification and uses self-signed certs.
 
 ## Production checklist

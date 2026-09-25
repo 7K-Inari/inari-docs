@@ -41,7 +41,7 @@ Therefore the workflow that creates the tag must also run the publish jobs — d
 release-please is configured per repo via `release-please-config.json` + `.release-please-manifest.json`. The `release-type` and publish outputs differ per repo:
 
 | Repo | release-type | Versioned artifact(s) | Publish outputs |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `inari-server` | `go` | Container image `inari/server` | GHCR image + cosign + SBOM/SLSA |
 | `inari-agent` | `go` | Container image `inari/agent` + install manifests | GHCR image + cosign + SBOM/SLSA |
 | `inari-operator` | `go` | Container image `inari/operator` | GHCR image + cosign + SBOM/SLSA |
@@ -77,7 +77,7 @@ The catalog is a content monorepo (KRO RGDs, platform-app charts, policy packs) 
 
 All commits landing on `main` must follow [Conventional Commits](https://www.conventionalcommits.org/):
 
-```
+```text
 <type>(<optional scope>)<!>: <description>
 
 <optional body>
@@ -92,7 +92,7 @@ Common types: `feat`, `fix`, `perf`, `refactor`, `docs`, `chore`, `ci`, `test`, 
 release-please computes the next version from commit types since the last tag:
 
 | Commit | Effect on proposed version |
-|---|---|
+| --- | --- |
 | `feat:` | **minor** bump (e.g. 1.2.3 → 1.3.0) |
 | `fix:`, `perf:` | **patch** bump (1.2.3 → 1.2.4) |
 | `feat!:` / `fix!:` / any type with `!` or a `BREAKING CHANGE:` footer | **major** bump (1.2.3 → 2.0.0) |

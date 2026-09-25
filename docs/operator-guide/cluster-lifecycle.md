@@ -4,12 +4,12 @@ Registered clusters move through explicit lifecycle states (plan §5.11). Operat
 
 ## States
 
-```
+```text
 Pending → Active → Degraded → Cordoned → Decommissioned
 ```
 
 | State | Meaning | Effect |
-|---|---|---|
+| --- | --- | --- |
 | `Pending` | Registered, token issued, agent not yet connected | No catalog visibility; registration token TTL ticking |
 | `Active` | Agent connected, capabilities streaming | Full catalog + deploys available per tenant policy |
 | `Degraded` | Agent disconnected or failing health | Deploys blocked on health gates; existing workloads keep reconciling autonomously |
@@ -33,9 +33,9 @@ Decommission drains Inari-managed resources and revokes identity, in order:
 
 Decommission is approval-gated when the cluster hosts resources owned by multiple teams.
 
-:::warning Irreversibility
-Decommission is terminal. Re-onboarding the same cluster is a fresh registration (new token, new OIDC client, new brownfield classification pass).
-:::
+!!! warning "Irreversibility"
+
+    Decommission is terminal. Re-onboarding the same cluster is a fresh registration (new token, new OIDC client, new brownfield classification pass).
 
 ## Related
 
