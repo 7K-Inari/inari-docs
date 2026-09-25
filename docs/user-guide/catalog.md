@@ -16,6 +16,17 @@ Every entry is a `CatalogItem` with an OpenAPI v3 schema, UI hints, a version, a
 
 **Catalog → Browse** shows items filtered to your tenant and the selected cluster's compatibility. Item detail shows documentation, versions, a schema preview, the policy that applies to it, and the **Deploy** action.
 
+The filter bar supports:
+
+- **Search** — debounced free text over name, display name, and description.
+- **Source** — curated, discovered, platform, or template.
+- **Category** — the package's declared category (e.g. `database`, `security`). Discovered capabilities have no category, so a category filter excludes them; the empty state reminds you of this when a cluster filter is also active.
+- **Cluster compatibility** — pick a cluster to intersect the catalog with what that cluster already provides ("what can I run here?").
+- **Sort** — name (A–Z / Z–A) or newest/oldest first.
+- **Grid / list view** — cards for discovery, a dense table for management work.
+
+Filters, sort, view, and page live in the URL, so a filtered view is a shareable link. Filtering and pagination run server-side, so the page scales with catalog size.
+
 The per-cluster view (**Clusters → detail → Capabilities**) is the live, discovered catalog of that cluster — the fastest way to see what a cluster can run right now.
 
 ## Versions and pinning
