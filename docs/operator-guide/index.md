@@ -6,6 +6,7 @@ Documentation for **platform engineers and operators** running the Inari control
 
 - [Day-0 bootstrap](bootstrap.md) — install the platform cluster and control plane from `inari-helm-charts`
 - [Backup & restore (DR runbook)](backup-restore.md) — PostgreSQL, OpenFGA, Keycloak, NATS; tested restore procedure
+- [High availability](high-availability.md) — 99.9% control-plane target posture: component matrix, production chart values, infrastructure SPOFs
 - [Fleet rollouts & agent upgrades](fleet-rollouts.md) — ClusterSets, staged rollouts, drift detection, upgrade channels
 - [Policy packs](policy-packs.md) — request-time OPA, render-time checks, Kyverno/CEL admission packs, exemptions
 - [Tenant Zone vending](tenant-zones.md) — management-account setup, `tenant-zone-aws` flow, decommission
