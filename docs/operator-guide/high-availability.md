@@ -9,7 +9,7 @@ The HA implementation work (chart knobs, leader-leased loops, golden-path disrup
 ## Availability target
 
 | Budget | Value |
-|---|---|
+| --- | --- |
 | Availability target | 99.9% |
 | Max downtime per year | ≤ 8.77 h |
 | Max downtime per month | ≤ 43.8 min |
@@ -19,7 +19,7 @@ The HA implementation work (chart knobs, leader-leased loops, golden-path disrup
 ## Component matrix
 
 | Component | HA model | Production posture | Verdict / notes |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `inari-server` | Stateless REST; multi-replica | `replicaCount: 2` + probes, PDB, anti-affinity (chart knobs — in flight) | Replica-safe paths: outbox consumers (`SKIP LOCKED`) for internal/audit delivery; scaffold claim-based dispatch. Coordinated singletons run behind a leader lease (in flight): TZF reconcile, fleet advance/drift, approvals expiry, catalog sync, group syncs, tenant-deletion resume. Migrations are serialized via a PostgreSQL advisory lock; agent streams are fenced server-side, so a reconnect after pod loss cannot split a stream. |
 | `inari-operator` | Active-passive via controller leader election (on by default) | `replicaCount: 2` + PDB, anti-affinity | Second replica is a hot standby; leadership failover on pod loss. |
 | `inari-console` | Stateless nginx SPA | `replicaCount: 2` + liveness probe, PDB, anti-affinity | No coordination needed; any replica serves any request. |
@@ -93,7 +93,7 @@ Never run the agent with more than one active replica and leader election disabl
 These are **not** built by the Inari charts — they are the recommended topology for the platform layer the charts deploy onto. Each is a single point of failure for the 99.9% budget if left at its default/dev posture:
 
 | Dependency | Recommended topology | Impact if single-instance |
-|---|---|---|
+| --- | --- | --- |
 | PostgreSQL | CNPG (CloudNativePG) with ≥ 2 instances, or a managed HA database | Total control-plane outage — all state, outbox, and audit live here |
 | Keycloak | HA deployment (≥ 2 replicas, clustered) | No new logins/token issuance; existing sessions degrade |
 | OpenFGA | ≥ 2 replicas | Authorization checks fail — every API route enforces OpenFGA |
