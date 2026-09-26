@@ -80,6 +80,6 @@ switches control the feature; it is available only when both allow it:
 
 Effective enablement = `!global && !cluster`, computed server-side and
 returned on cluster payloads as `kubectlProxyEnabled`. The per-cluster
-setting persists as `clusters.kubectl_proxy_disabled` (migration 0027,
+setting persists as `clusters.kubectl_proxy_disabled` (migration 0028,
 default `false`). Neither switch affects the underlying kubelogin trust
 chain above — they only gate the proxy-setup UX and its contract.
