@@ -65,3 +65,21 @@ Developers never configure this by hand: `inari cluster kubeconfig <id>` renders
 ## Verification
 
 `inari-server/e2e/kubectl-access.sh` stands up the full chain (etcd + kube-apiserver + Keycloak, kubelogin exec plugin, viewer-bound group) and asserts: the token carries `groups: ["/tenant-acme/viewers"]`, `kubectl get ns` succeeds, and editor-only operations are denied.
+
+## kubectl-proxy e2e access (disable switches)
+
+The console's **Connect** tab guides developers through running e2e tests
+against a cluster via `kubectl proxy` (see
+[E2E testing via kubectl proxy](../user-guide/kubectl-proxy.md)). Two
+switches control the feature; it is available only when both allow it:
+
+| Switch | Scope | Effect |
+| --- | --- | --- |
+| `INARI_DISABLE_KUBECTL_PROXY=true` (env on inari-server, e.g. via chart `extraEnv`) | global | Feature off everywhere: `GET /api/v1/features` reports `kubectlProxy.enabled=false`, cluster payloads report `kubectlProxyEnabled=false`, and the console hides the Connect tab. |
+| `kubectlProxyDisabled` per cluster (`PATCH /api/v1/tenants/{org}/clusters/{id}`, platform engineer, or the Connect tab toggle) | single cluster | That cluster reports `kubectlProxyEnabled=false`; other clusters stay usable. |
+
+Effective enablement = `!global && !cluster`, computed server-side and
+returned on cluster payloads as `kubectlProxyEnabled`. The per-cluster
+setting persists as `clusters.kubectl_proxy_disabled` (migration 0027,
+default `false`). Neither switch affects the underlying kubelogin trust
+chain above — they only gate the proxy-setup UX and its contract.
