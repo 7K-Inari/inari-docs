@@ -2,7 +2,7 @@
 
 This page is the **documentation of record** for how releases work across every repo in the 7K-Inari org. It covers the automated flow, the per-repo configuration, what you need to do as a contributor, and runbooks for when things go wrong.
 
-The process is recorded as a decision in [ADR-0002](../adr/0002-release-automation-release-please.md).
+The process is recorded as decisions in [ADR-0002](../adr/0002-release-automation-release-please.md) (stable releases) and [ADR-0015](../adr/0015-release-bundle-and-edge-releases.md) (release bundle + edge releases).
 
 ## The flow
 
@@ -51,17 +51,19 @@ release-please is configured per repo via `release-please-config.json` + `.relea
 | `inari-ui-plugin-sdk` | `node` | npm package | npm publish + dist-tag |
 | `inari-catalog` | `simple` (per-package paths) | OCI artifacts + channels | OCI artifacts to GHCR + channel tags (see below) |
 | `inari-cli` | `go` | Binaries | goreleaser: archives, brew/scoop, `go install` tag |
-| `inari-helm-charts` | `helm` (per-chart packages) | Charts (OCI) | OCI chart push to GHCR (see below) |
+| `inari-release-bundle` | `helm` (per-chart packages) | Charts (OCI) | OCI chart push to GHCR (see below) |
 | `inari-ext-argocd` | `go` | Container image + UI remote | GHCR image + cosign + SBOM/SLSA |
-| `inari-docs` | — | Static site | **No releases** — deployed continuously to GitHub Pages |
+| `inari-docs` | — | Static site | **No stable releases** — deployed continuously to GitHub Pages (edge marker prereleases only, see below) |
 
-### inari-helm-charts: per-chart scheme
+### inari-release-bundle: per-chart scheme
 
-Charts version **independently**. The repo uses one release-please config with a separate package entry per chart path (e.g. `charts/inari-server`, `charts/inari-agent`, `charts/platform-baseline`), each with `release-type: helm`.
+Charts version **independently**. The repo (formerly `inari-helm-charts`) uses one release-please config with a separate package entry per chart path (`charts/inari-platform`, `charts/inari-server`, `charts/inari-console`, `charts/dex`), each with `release-type: helm`.
 
-- Tags are per chart: **`<chart-name>-<version>`** (e.g. `inari-server-0.4.0`).
+- Tags are per chart: **`<chart-name>-v<version>`** (e.g. `inari-platform-v0.4.1`).
 - The Release PR bumps each changed chart's `version` in its `Chart.yaml` and updates the per-chart CHANGELOG; only charts with releasable commits get bumped.
-- On merge, `release.yml` creates the per-chart tags and pushes each changed chart as an OCI artifact to GHCR (`oci://ghcr.io/7k-inari/charts/<chart-name>`).
+- On merge, `release.yaml` creates the per-chart tags and pushes each changed chart as an OCI artifact to the **org-level namespace** `oci://ghcr.io/7k-inari/charts/<chart-name>` — the same namespace the inari-agent and inari-operator charts (which stay in their repos) publish to. The old repo-scoped namespaces (`…/inari-helm-charts/charts`, `…/inari-server/charts`, `…/inari-ui/charts`) are deprecated; existing artifacts stay published.
+- **`inari-server`/`inari-console` appVersion sync**: the charts moved here from the component repos. After their publish pipelines succeed, the inari-server/inari-ui `release.yml` dispatches `appversion-bump` to the bundle repo's `chart-sync.yml`, which commits `fix(<chart>): bump appVersion to vX.Y.Z` (plus inari-console's `values.yaml` `bundle.tag`) so the Release PR proposes a chart patch release and the chart publishes in lockstep with the component. `appVersion:` in those charts is owned by this sync — never hand-edit it and never annotate it `x-release-please-version`. Repair path: `chart-sync.yml` `workflow_dispatch` with `chart` + `version`.
+- **Agent compatibility range**: `charts/inari-platform` declares `agent.supportedRange` (human-maintained semver range) and `agent.recommended` (default pin, auto-bumpable by the inari-agent release pipeline), rendered into the `inari-agent-compat` ConfigMap. inari-server reads these to recommend agent installs/upgrades.
 
 ### inari-catalog: per-package tag scheme
 
@@ -70,6 +72,37 @@ The catalog is a content monorepo (KRO RGDs, platform-app charts, policy packs) 
 - release-please runs with a package entry per package directory; tags follow the monorepo scheme **`<package-path>/v<version>`** (e.g. `packages/postgres/v1.3.0`).
 - On merge, `release.yml` pushes the changed packages as signed OCI artifacts to GHCR and updates the moving **channel tags** (`stable`, `incubating`) for packages whose channel changed.
 - Channel membership is metadata in the package, not a git tag — moving a package between channels is a normal conventional commit.
+
+## Edge releases
+
+Every inari repo except `7k-app-of-apps` cuts an **edge release on every merge to `main`** (workflow: `.github/workflows/edge.yml`; skipped when the push is itself a release merge, which the stable pipeline covers). Edge releases make every merge deployable and referenceable without waiting for the human-gated stable release.
+
+- **Version scheme**: `<pending-version>-edge.<shortsha>` (e.g. `3.1.0-edge.a1b2c3d`), where the pending version comes from the open Release PR's bumped manifest — resolved by `scripts/resolve-edge-version.sh` (identical copy in every repo; fallback: manifest or latest stable tag + patch; unversioned repos start at `0.1.0`).
+- **Outputs**: a GitHub **prerelease** (never a full release, so "latest release" pointers and release-please's last-release detection stay on stable releases) plus the commit's artifacts tagged with the same semver-edge tag. Moving `:edge` artifact tags are kept as well.
+- **Prereleases are never stable**: do not pin edge tags in production gitops; they are for e2e, dogfooding, and contract sync between releases.
+
+Per-repo edge artifacts:
+
+| Repo | Edge artifacts (in addition to the prerelease) |
+| --- | --- |
+| `inari-server` | Image `:<pending>-edge.<sha>` (+ `:edge`, `:edge-<sha>`); OpenAPI spec OCI `:<pending>-edge.<sha>` (cosign-signed) |
+| `inari-ui` | Bundle OCI `inari-ui-bundle:<pending>-edge.<sha>` (+ `:edge`) |
+| `inari-agent` | Image `:<pending>-edge.<sha>` (+ `:edge`, `:edge-<sha>`) |
+| `inari-operator` | Image `:<pending>-edge.<sha>`; both charts pushed at their pending edge versions |
+| `inari-ext-argocd` | Backend image `:<pending>-edge.<sha>`; backend + UI (`ui-v…`) prereleases, UI remote assets attached |
+| `inari-api` | npm `@7k-inari/api-client@<pending>-edge.<sha>` (dist-tag `edge`); prerelease tag doubles as Go module ref |
+| `inari-ui-plugin-sdk` | npm `@<pending>-edge.<sha>` (dist-tag `edge`) |
+| `inari-plugin-sdk` | Prerelease tag only (Go module ref) |
+| `inari-cli` | goreleaser snapshot archives attached to the prerelease |
+| `inari-catalog` | Each package pushed as `<pending>-edge.<sha>` OCI (cosign-signed, **no channel tags**); one consolidated `edge-<sha>` prerelease |
+| `inari-release-bundle` | Each chart pushed as `<pending>-edge.<sha>` to `oci://ghcr.io/7k-inari/charts`; per-chart prereleases |
+| `inari-docs` | Prerelease marker tag only (site deploys continuously) |
+
+**Operational notes:**
+
+- npm OIDC trusted publishers are bound to the workflow *filename* — each repo's `edge.yml` must be registered as a trusted publisher on npmjs.com alongside `release.yml`.
+- The edge version script is a deliberate identical copy in 12 repos — when changing it, change the canonical copy in `inari-release-bundle` (`scripts/resolve-edge-version.sh`, with tests in `scripts/tests/`) and sync it everywhere.
+- Edge prerelease tags must never be picked up as stable: release-please manifest mode reads versions from the manifest and edge releases are marked prerelease. The scheme was canaried on `inari-ui-plugin-sdk`; if a repo's release-please ever mis-detects an edge tag as the last stable release, switch that repo to non-`v`-prefixed edge tags (`edge/X.Y.Z-sha`).
 
 ## Contributor guide
 
@@ -143,7 +176,8 @@ Do **not** revert the release-please bump commit itself to "unrelease" — the t
 ### Rotating tokens
 
 - Publish jobs use the workflow's `GITHUB_TOKEN` for GHCR, tags, and releases — no rotation needed beyond the repo's `permissions:` blocks.
-- Any repo that needs a PAT or GitHub App token (e.g. cross-repo pushes) stores it as an **org or repo Actions secret** (see the repo's `release.yml` `secrets:` references for exact names).
+- Cross-repo work uses `RELEASE_PLEASE_TOKEN` (GitHub App or PAT): inari-server/inari-ui dispatch `appversion-bump` to `inari-release-bundle` with it, and the bundle repo's `chart-sync.yml` pushes with it (a `GITHUB_TOKEN` push would not re-trigger release-please). It needs `contents:write` + `actions:write` on `inari-release-bundle`. Rotating it means updating the secret in every repo that references it.
+- Any other repo that needs a PAT or GitHub App token (e.g. cross-repo pushes) stores it as an **org or repo Actions secret** (see the repo's `release.yml` `secrets:` references for exact names).
 - Rotation: generate the new token with the same scopes → update the secret value in GitHub → re-run the most recent failed `release.yml` job to confirm → revoke the old token.
 - After rotating, check the next scheduled workflow run (if any) — secret updates do not retroactively fix queued runs.
 
