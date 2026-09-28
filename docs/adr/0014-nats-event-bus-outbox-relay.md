@@ -39,12 +39,14 @@ We will make **NATS JetStream the obligatory, single event-delivery path** for i
 ## Consequences
 
 **Easier:**
+
 - HA event delivery with no leader lease and no per-replica polling; pod loss fails deliveries over to surviving replicas via the durable group (validated in e2e HA(a)).
 - External consumers can subscribe to `INARI_OUTBOX` with their own durables without touching inari-server code (audit export, notifications fan-out later).
 - The kubectl tunnel frame bus and inari-kubeproxy land on an existing, shared, HA substrate with a defined subject convention.
 - Multi-replica dev parity: dev, e2e, and production all exercise the same delivery path.
 
 **Harder:**
+
 - NATS is a hard dependency: the server will not boot without it. Mitigated by the default-on subchart, the compose service, the 3-node gitops cluster, startup retry budget, and fail-open runtime semantics.
 - Handler execution leaves the claim TX: delivery is at-least-once via JetStream redelivery rather than "handle + mark in one TX". Safe because handler side effects were never in that TX; handlers were already required to be idempotent.
 - Rolling upgrade mixes modes transiently: old replicas run the in-process dispatcher, new ones the relay. Safe per row — the SKIP LOCKED claim decides the path exactly once — but dead-letter semantics differ per row during the rollout window. Deploy NATS first (gitops already does; sync waves order it before inari-server).
