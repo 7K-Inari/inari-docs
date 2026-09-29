@@ -375,7 +375,7 @@ Polyrepo under a single GitHub org, e.g. **`inari-dev`** (mirrors how k8s ecosys
 | 7 | **`inari-ui-plugin-sdk`** | TS SDK: extension-point blueprints, host APIs, dev harness (run an extension standalone against a dev control plane) | TS | npm package |
 | 8 | **`inari-catalog`** | Curated packages: KRO RGDs, platform-app Helm charts, UI-schema hints, per-package docs/tests; CI publishes signed OCI artifacts | YAML, CEL, Helm, OPA tests | OCI artifacts + channels (`stable`, `incubating`) |
 | 9 | **`inari-cli`** | `inari` CLI: login (OIDC device flow), cluster/catalog/resource ops, agent install, extension scaffolding (`inari extension init`) | Go, cobra | Binary releases (brew/scoop/go install) |
-| 10 | **`inari-helm-charts`** | Deployment: control-plane umbrella chart, agent chart, platform-cluster baseline chart | Helm | Chart releases (OCI) |
+| 10 | **`inari-release-bundle`** (formerly `inari-helm-charts`) | Deployment: core charts (`inari-platform`, `inari-server`, `inari-console`, `dex`), GitOps composition, day-0 bootstrap | Helm | Chart releases (OCI, org-level `oci://ghcr.io/7k-inari/charts`) |
 | 11 | **`inari-ext-argocd`** | Reference + first-party extension: ArgoCD actions (sync/refresh/rollback/custom Lua actions), ArgoCD status cards/tabs for the UI | Go + TS | Container image + UI remote |
 | 12 | **`inari-docs`** | Docs site, ADRs, user/operator/extension-author guides, tutorials | Astro/Docusaurus | Static site |
 
@@ -539,7 +539,7 @@ Assumptions: 4–6 engineers, polyrepo, 2-week iterations. Milestones are capabi
 ### M0 — Foundations (wks 1–5)
 
 - Repo scaffolding (server, agent, ui, api, charts), CI/CD, signing, dev env (kind-based local platform cluster)
-- **Day-0 bootstrap:** scripted first-platform-cluster install via `inari-helm-charts` (Inari never requires Inari to install); **backup/restore runbook** for PostgreSQL, OpenFGA store, Keycloak config, NATS
+- **Day-0 bootstrap:** scripted first-platform-cluster install via `inari-release-bundle` (Inari never requires Inari to install); **backup/restore runbook** for PostgreSQL, OpenFGA store, Keycloak config, NATS
 - Keycloak integration: `inari` realm, Organizations, console SSO login, tenant switcher
 - Core data model + tenancy service; audit outbox; **OpenFGA** on the platform cluster (authorization model v1, `Authorizer` interface, tuple writer fed by the outbox)
 - **Exit:** log in via OIDC, create org/teams, OpenFGA checks enforced on all API routes, empty shell UI with tenant context, **control plane restored from backup in a DR drill**
@@ -636,7 +636,7 @@ Topics to settle *before* or *during* early implementation. Nothing here invalid
 
 | # | Topic | Why it blocks | Recommendation |
 | --- | --- | --- | --- |
-| 1 | **Day-0 bootstrap & DR** ("who watches the watcher"): how the first platform cluster + control plane is installed; backup/restore of PostgreSQL, OpenFGA store, Keycloak config, NATS | Inari must not require Inari to install; no tenant onboards before restore is tested | `inari-helm-charts` + documented bootstrap script; tested backup/restore runbook as an M0 exit criterion |
+| 1 | **Day-0 bootstrap & DR** ("who watches the watcher"): how the first platform cluster + control plane is installed; backup/restore of PostgreSQL, OpenFGA store, Keycloak config, NATS | Inari must not require Inari to install; no tenant onboards before restore is tested | `inari-release-bundle` + documented bootstrap script; tested backup/restore runbook as an M0 exit criterion |
 | 2 | **Git provider matrix & git auth**: GitHub-only at v1? GitLab/self-hosted timing? Where agent git-write credentials live | Touches `inari-api` contracts and the agent | GitHub first (GitHub App credentials delivered via ESO — never PATs); GitLab in v1.x; provider abstraction in the orchestrator from day one |
 | 3 | **Brownfield adoption semantics**: what happens to pre-existing ArgoCD/operators/resources when a cluster registers | Undecided semantics become data-destroying edge cases | Three modes per resource: adopt (under management), observe-only (inventory, no mutation), ignore; default = observe-only |
 | 4 | **Agent footprint budget & v1 scale envelope** | Starter-tier EKS nodes are small; M4 load test needs targets | Agent ≤ 100m CPU / 128Mi; control plane tested at 100 clusters / 5k resource instances / 50 concurrent agent streams |
