@@ -77,25 +77,25 @@ The catalog is a content monorepo (KRO RGDs, platform-app charts, policy packs) 
 
 Every inari repo except `7k-app-of-apps` cuts an **edge release on every merge to `main`** (workflow: `.github/workflows/edge.yml`; skipped when the push is itself a release merge, which the stable pipeline covers). Edge releases make every merge deployable and referenceable without waiting for the human-gated stable release.
 
-- **Version scheme**: `<pending-version>-edge.<shortsha>` (e.g. `3.1.0-edge.a1b2c3d`), where the pending version comes from the open Release PR's bumped manifest — resolved by `scripts/resolve-edge-version.sh` (identical copy in every repo; fallback: manifest or latest stable tag + patch; unversioned repos start at `0.1.0`).
-- **Outputs**: a GitHub **prerelease** (never a full release, so "latest release" pointers and release-please's last-release detection stay on stable releases) plus the commit's artifacts tagged with the same semver-edge tag. Moving `:edge` artifact tags are kept as well.
+- **Version scheme**: `<pending-version>-<shortsha>` (e.g. `3.1.0-a1b2c3d`), where the pending version comes from the open Release PR's bumped manifest — resolved by `scripts/resolve-edge-version.sh` (identical copy in every repo; fallback: manifest or latest stable tag + patch; unversioned repos start at `0.1.0`).
+- **Outputs per merge**: an immutable GitHub **prerelease** `vX.Y.Z-<sha>` (never a full release, so "latest release" pointers and release-please's last-release detection stay on stable releases), the commit's artifacts tagged with the same `X.Y.Z-<sha>` version, and the **moving `edge` channel tag/release** — a git tag `edge` force-moved to the merge commit whose GitHub prerelease always describes the latest edge build. Moving `:edge` artifact tags are kept as well.
 - **Prereleases are never stable**: do not pin edge tags in production gitops; they are for e2e, dogfooding, and contract sync between releases.
 
 Per-repo edge artifacts:
 
 | Repo | Edge artifacts (in addition to the prerelease) |
 | --- | --- |
-| `inari-server` | Image `:<pending>-edge.<sha>` (+ `:edge`, `:edge-<sha>`); OpenAPI spec OCI `:<pending>-edge.<sha>` (cosign-signed) |
-| `inari-ui` | Bundle OCI `inari-ui-bundle:<pending>-edge.<sha>` (+ `:edge`) |
-| `inari-agent` | Image `:<pending>-edge.<sha>` (+ `:edge`, `:edge-<sha>`) |
-| `inari-operator` | Image `:<pending>-edge.<sha>`; both charts pushed at their pending edge versions |
-| `inari-ext-argocd` | Backend image `:<pending>-edge.<sha>`; backend + UI (`ui-v…`) prereleases, UI remote assets attached |
-| `inari-api` | npm `@7k-inari/api-client@<pending>-edge.<sha>` (dist-tag `edge`); prerelease tag doubles as Go module ref |
-| `inari-ui-plugin-sdk` | npm `@<pending>-edge.<sha>` (dist-tag `edge`) |
+| `inari-server` | Image `:<pending>-<sha>` (+ `:edge`, `:edge-<sha>`); OpenAPI spec OCI `:<pending>-<sha>` (cosign-signed) |
+| `inari-ui` | Bundle OCI `inari-ui-bundle:<pending>-<sha>` (+ `:edge`) |
+| `inari-agent` | Image `:<pending>-<sha>` (+ `:edge`, `:edge-<sha>`) |
+| `inari-operator` | Image `:<pending>-<sha>`; both charts pushed at their pending edge versions |
+| `inari-ext-argocd` | Backend image `:<pending>-<sha>`; backend + UI (`ui-v…`) prereleases, UI remote assets attached |
+| `inari-api` | npm `@7k-inari/api-client@<pending>-<sha>` (dist-tag `edge`); prerelease tag doubles as Go module ref |
+| `inari-ui-plugin-sdk` | npm `@<pending>-<sha>` (dist-tag `edge`) |
 | `inari-plugin-sdk` | Prerelease tag only (Go module ref) |
 | `inari-cli` | goreleaser snapshot archives attached to the prerelease |
-| `inari-catalog` | Each package pushed as `<pending>-edge.<sha>` OCI (cosign-signed, **no channel tags**); one consolidated `edge-<sha>` prerelease |
-| `inari-release-bundle` | Each chart pushed as `<pending>-edge.<sha>` to `oci://ghcr.io/7k-inari/charts`; per-chart prereleases |
+| `inari-catalog` | Each package pushed as `<pending>-<sha>` OCI (cosign-signed, **no channel tags**); one consolidated `edge-<sha>` prerelease |
+| `inari-release-bundle` | Each chart pushed as `<pending>-<sha>` to `oci://ghcr.io/7k-inari/charts`; per-chart prereleases |
 | `inari-docs` | Prerelease marker tag only (site deploys continuously) |
 
 **Operational notes:**

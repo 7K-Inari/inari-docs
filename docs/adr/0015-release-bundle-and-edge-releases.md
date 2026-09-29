@@ -26,8 +26,8 @@ Options for the chart topology included keeping charts in component repos with c
 
 Every inari repo except `7k-app-of-apps` cuts an **edge release on every merge to `main`** (skipped on release merges, which the stable pipeline covers):
 
-- Version: **`<pending-release-version>-edge.<shortsha>`**, where the pending version comes from the open release-please Release PR's bumped manifest (fallback: manifest/latest stable tag + patch; unversioned repos start at 0.1.0). Resolution lives in an identical `scripts/resolve-edge-version.sh` copy per repo.
-- Output: a **GitHub prerelease** (never a full release — this keeps "latest release" pointers and release-please's last-release detection on stable releases) **plus the commit's artifacts tagged with the same semver-edge tag** (images, OCI bundles/charts/artifacts, npm `edge` dist-tag, goreleaser snapshot archives; per-repo table in [docs/ops/release-process.md](../ops/release-process.md)). Moving `:edge` tags stay.
+- Version: **`<pending-release-version>-<shortsha>`** (e.g. `v3.1.0-a1b2c3d`), where the pending version comes from the open release-please Release PR's bumped manifest (fallback: manifest/latest stable tag + patch; unversioned repos start at 0.1.0). Resolution lives in an identical `scripts/resolve-edge-version.sh` copy per repo.
+- Output: an immutable **GitHub prerelease** `vX.Y.Z-<sha>` per merge (never a full release — this keeps "latest release" pointers and release-please's last-release detection on stable releases), the commit's artifacts tagged with the same `X.Y.Z-<sha>` version (images, OCI bundles/charts/artifacts, npm `edge` dist-tag, goreleaser snapshot archives; per-repo table in [docs/ops/release-process.md](../ops/release-process.md)), and a **moving `edge` channel tag/release** that always points at the latest merge. Existing moving `:edge` artifact tags stay.
 
 ## Consequences
 
