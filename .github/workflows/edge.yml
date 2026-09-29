@@ -56,11 +56,15 @@ jobs:
         run: |
           set -euo pipefail
           edge="$(scripts/resolve-edge-version.sh .)"
-          gh release create "v${edge}" \
-            --prerelease \
-            --target "$GITHUB_SHA" \
-            --title "edge ${edge}" \
-            --notes "Edge marker for docs as of ${GITHUB_SHA}. The site deploys continuously; this tag only keeps the edge scheme uniform across repos."
+          if gh release view "v${edge}" > /dev/null 2>&1; then
+            echo "prerelease v${edge} already exists — skipping create (workflow rerun)"
+          else
+            gh release create "v${edge}" \
+              --prerelease \
+              --target "$GITHUB_SHA" \
+              --title "edge ${edge}" \
+              --notes "Edge marker for docs as of ${GITHUB_SHA}. The site deploys continuously; this tag only keeps the edge scheme uniform across repos."
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag -f edge "$GITHUB_SHA"
