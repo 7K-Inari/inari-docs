@@ -129,3 +129,18 @@ sequenceDiagram
 - **Harder**: Dex becomes a new baseline component per tenant cluster (install, upgrade, version-skew policy like the rest of the bundle); `user_extension_sessions` introduces an encrypted session store to operate and back up; token exchange adds latency, mitigated by the 60s cache; the vault/redemption hop adds moving parts to the agent command path.
 - **Follow-up work**: `ConnectionProvider` SDK contract and manifest schema; `user_extension_sessions` encryption design (aligned with [ADR-0013](0013-per-user-git-connections-model-c.md) envelope-encryption approach); Dex bundle packaging in the tenant-zone baseline; verification-gate checklist for direct external-issuer support.
 - **We would revisit if**: ArgoCD gains first-class external OIDC issuer validation that passes the verification gate (making Dex optional), or if a SPIFFE/mTLS-based extension identity model supersedes bearer-token exchange across trust zones.
+
+## Follow-up (2026-09): Dex delivery via the official dexidp chart
+
+The in-house `charts/dex` chart is retired. The cluster-local Dex is delivered
+by the inari-operator as a **single-source ArgoCD `Application`** per tenant
+cluster (`ClusterDex` CR) consuming the official dexidp Helm chart
+(`https://charts.dexidp.io`, pinned `targetRevision` via
+`spec.dex.chartVersion`). The full Dex `config.yaml` (Keycloak connector
+`cluster-<id>-dex`, static `argocd` client, `enablePasswordDB` break-glass)
+continues to live in an ESO/Vault-synced Secret mounted via
+`configSecret.create: false` + `configSecret.name` — the security posture of
+this ADR is unchanged. The operator also renders the tenant ArgoCD OIDC/RBAC
+baseline (`argocd-cm` oidc.config, fail-closed `argocd-rbac-cm`, the
+`inari-breakglass` account) and unions `https://charts.dexidp.io` into tenant
+AppProject `sourceRepos` automatically.

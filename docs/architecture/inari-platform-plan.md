@@ -375,7 +375,7 @@ Polyrepo under a single GitHub org, e.g. **`inari-dev`** (mirrors how k8s ecosys
 | 7 | **`inari-ui-plugin-sdk`** | TS SDK: extension-point blueprints, host APIs, dev harness (run an extension standalone against a dev control plane) | TS | npm package |
 | 8 | **`inari-catalog`** | Curated packages: KRO RGDs, platform-app Helm charts, UI-schema hints, per-package docs/tests; CI publishes signed OCI artifacts | YAML, CEL, Helm, OPA tests | OCI artifacts + channels (`stable`, `incubating`) |
 | 9 | **`inari-cli`** | `inari` CLI: login (OIDC device flow), cluster/catalog/resource ops, agent install, extension scaffolding (`inari extension init`) | Go, cobra | Binary releases (brew/scoop/go install) |
-| 10 | **`inari-release-bundle`** (formerly `inari-helm-charts`) | Deployment: core charts (`inari-platform`, `inari-server`, `inari-console`, `dex`), GitOps composition, day-0 bootstrap | Helm | Chart releases (OCI, org-level `oci://ghcr.io/7k-inari/charts`) |
+| 10 | **`inari-release-bundle`** (formerly `inari-helm-charts`) | Deployment: core charts (`inari-platform`, `inari-server`, `inari-console`), GitOps composition, day-0 bootstrap (tenant-cluster Dex comes from the official `dexidp` chart, operator-rendered) | Helm | Chart releases (OCI, org-level `oci://ghcr.io/7k-inari/charts`) |
 | 11 | **`inari-ext-argocd`** | Reference + first-party extension: ArgoCD actions (sync/refresh/rollback/custom Lua actions), ArgoCD status cards/tabs for the UI | Go + TS | Container image + UI remote |
 | 12 | **`inari-docs`** | Docs site, ADRs, user/operator/extension-author guides, tutorials | Astro/Docusaurus | Static site |
 

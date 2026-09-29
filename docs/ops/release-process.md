@@ -57,7 +57,7 @@ release-please is configured per repo via `release-please-config.json` + `.relea
 
 ### inari-release-bundle: per-chart scheme
 
-Charts version **independently**. The repo (formerly `inari-helm-charts`) uses one release-please config with a separate package entry per chart path (`charts/inari-platform`, `charts/inari-server`, `charts/inari-console`, `charts/dex`), each with `release-type: helm`.
+Charts version **independently**. The repo (formerly `inari-helm-charts`) uses one release-please config with a separate package entry per chart path (`charts/inari-platform`, `charts/inari-server`, `charts/inari-console`), each with `release-type: helm`. (The in-house `charts/dex` was retired: tenant-cluster Dex is deployed by the inari-operator from the official `dexidp` chart as ArgoCD Applications — see ADR-0012.)
 
 - Tags are per chart: **`<chart-name>-v<version>`** (e.g. `inari-platform-v0.4.1`).
 - The Release PR bumps each changed chart's `version` in its `Chart.yaml` and updates the per-chart CHANGELOG; only charts with releasable commits get bumped.
