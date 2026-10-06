@@ -30,15 +30,30 @@ Every tenant gets a kubelogin-ready OIDC client automatically: `org-<slug>-kubec
 
 3. First `kubectl` call opens a browser login (or prints a device code); kubelogin caches and refreshes tokens afterward.
 
-## Private clusters (pull-only agents)
+## Private clusters (pull-only agents): gateway mode
 
-Direct mode requires your machine to reach the tenant API server. Where the cluster API is private — the normal case, since Inari agents are egress-only — use the **gateway-impersonated** topology (plan §5.4):
+Direct mode requires your machine to reach the tenant API server. Where the cluster API is private — the normal case, since Inari agents are egress-only — use **gateway mode** (plan §7.2):
 
 ```bash
 inari cluster kubeconfig clu-1 --gateway > ~/.kube/prod-1
 ```
 
-kubectl then targets a control-plane proxy endpoint that forwards requests over the agent's outbound gRPC stream with Kubernetes **impersonation headers** (`Impersonate-User` = you, `Impersonate-Group` = your token groups), so the exact same cluster RBAC applies — no second permission model. The proxy itself is a follow-up component; the CLI already renders the correct kubeconfig form for it.
+kubectl then targets the control-plane **kubeproxy** endpoint, which validates your Keycloak token, checks your `cluster:kubectl` permission, and forwards the request over a tunnel the in-cluster **tunnel agent** dialed out to the control plane — with Kubernetes **impersonation headers** minted by the hub (`Impersonate-User` = you, `Impersonate-Group` = your token groups, e.g. `/tenant-acme/platform-team`). The exact same cluster RBAC applies as in direct mode — no second permission model — and any `Impersonate-*` headers you send yourself are stripped; only hub-minted identity reaches your API server.
+
+In the console, the cluster's **Connect** dialog offers both modes and shows whether the tunnel is live (`tunnelAvailable` from the cluster's access-info). If no tunnel agent is connected yet — typically a cluster still running a pre-tunnel agent — gateway requests fail fast with **503** and a remediation message ("upgrade the inari-agent chart to a version with kubectl tunnel support"); they never hang.
+
+### Direct vs gateway — which to pick
+
+| Pick | When |
+| --- | --- |
+| **Direct** | Your machine can reach the cluster API server (VPN, peered network, public endpoint). Lowest latency, no control-plane hop. |
+| **Gateway** | The cluster API is private / egress-only (pull-only agents), or you are on an arbitrary network. Works wherever you can reach the Inari control plane. |
+
+Both modes use the same kubelogin login and the same cluster RBAC; you can keep kubeconfigs for both and switch freely.
+
+### Kill switch
+
+Platform operators can turn kubectl access off globally (`kubectl_access.enabled` / `INARI_KUBECTL_ACCESS_ENABLED=false`). While off, the gateway answers **410 Gone** ("kubectl access is disabled by platform policy") and tunnel streams are refused; direct mode is unaffected (it never transits the control plane). A single cluster's tunnel can also be revoked by disabling its `tunnel-<cluster-id>` identity client — see the operator guide.
 
 ## How RBAC maps
 
@@ -54,6 +69,8 @@ Control-plane automation acts on your cluster via **impersonation** of tenant-sc
 | `error: You must be logged in to the server (Unauthorized)` | Token rejected by the API server: expired (re-run `kubectl oidc-login`), missing `organization` claim (confirm you belong to the tenant), or the cluster's `AuthenticationConfiguration` doesn't trust the `inari` issuer/audiences |
 | `oidc: required claim ... / token organization does not match this tenant` | You are not a member of the tenant's Keycloak Organization, or the cluster's CEL rule pins a different tenant alias |
 | `Forbidden` on a namespace/verb | Your team is not bound to a ClusterRole allowing it — check with a platform engineer on the RBAC mappings page |
+| `503 ... tunnel unavailable` (gateway mode) | No tunnel agent is connected for the cluster — upgrade the inari-agent chart to a version with kubectl tunnel support, then retry |
+| `410 ... kubectl access is disabled` (gateway mode) | The platform-wide kubectl kill switch is off — ask your platform team; use direct mode if the API server is reachable |
 | Browser never opens | Use `--grant-type=device-code` on headless machines |
 | Works in console, not kubectl | Console permissions (OpenFGA) and cluster RBAC are separate layers — the cluster binding is missing; they are managed from the same groups |
 

@@ -54,6 +54,8 @@ We will make **NATS JetStream the obligatory, single event-delivery path** for i
 
 **Follow-ups (not in scope):** notifications/webhooks as external JetStream consumers; LISTEN/NOTIFY wakeup to cut relay poll latency; stream-based replay tooling (dedicated DLQ stream) if ever wanted; the kubectl tunnel frame bus as the first ephemeral-pub/sub consumer; bumping `gitops/apps/inari-server.yaml` `targetRevision` to the chart release containing NATS support.
 
+> **Update (M1W6):** the kubectl tunnel shipped on a direct h2c Connect bidi stream between inari-kubeproxy and the in-cluster tunnel agent, not the NATS frame bus — see inari-server `docs/decisions/0014-kubectl-gateway-kubeproxy-tunnel.md`. The `inari.tunnel.<clusterID>.<connID>` subject convention above remains the documented revisit path if multi-region fan-out later needs durable frames.
+
 **Revisit if:** NATS operational burden (cluster management, PVCs, monitoring) exceeds the operational cost of the old DB-poll status quo, or if event volume outgrows a single limits-retention stream and justifies per-domain streams.
 
 _Note on numbering: inari-server keeps its own `docs/decisions/` series (which contains two documents numbered 0010 — the PEP/tenant cache and the migration advisory lock — plus 0011, the DB leader lease). This ADR continues the inari-docs series; "ADR-0014" below and in code comments refers to this document._
