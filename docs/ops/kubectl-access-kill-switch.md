@@ -5,10 +5,10 @@
 
 ## Controls
 
-| Level | Endpoint | Who |
-|---|---|---|
-| Platform default | `PUT/DELETE /api/v1/platform/feature-flags/kubectl_access.enabled` | platform admin (`org_creator` on `platform:inari`) |
-| Cluster override | `PUT/DELETE /api/v1/tenants/{org}/clusters/{id}/feature-flags/kubectl_access.enabled` | tenant admin/operator (`clusters.register`) |
+| Level            | Endpoint                                                                                    | Who                                                          |
+| ---------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| Platform default | `PUT/DELETE /api/v1/platform/feature-flags/kubectl_access.enabled`                          | platform admin (`org_creator` on `platform:inari`)           |
+| Cluster override | `PUT/DELETE /api/v1/tenants/{org}/clusters/{id}/feature-flags/kubectl_access.enabled`       | tenant admin/operator (`clusters.register`)                  |
 
 `PUT` body: `{"value": true|false}`. `DELETE` reverts to the wider scope / built-in default (`true`).
 
