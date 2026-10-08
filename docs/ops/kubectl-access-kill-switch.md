@@ -47,3 +47,7 @@ curl -H "Authorization: Bearer $TOKEN" https://$INARI/api/v1/platform/feature-fl
 ## Audit
 
 Every write appends `featureflags.set` / `featureflags.cleared` audit rows and a `featureflags.updated` outbox event with actor, scope, and value.
+
+## External flag UI (optional, Flipt)
+
+The chart ships an optional [Flipt](https://www.flipt.io) subchart (Apache-2.0, built-in UI, OIDC login free in OSS, OFREP-native). Enable with `flipt.enabled=true` (or `flagsProvider.url` for a BYO OFREP endpoint) — the server Deployment then gets `INARI_FLAGS_PROVIDER=ofrep` pointing at the subchart service. The Flipt UI manages **external-allowed platform product/rollout flags only**; `kubectl_access.enabled` and any cluster-scoped flag stay DB-authoritative and keep being managed via the API above, never in Flipt. OIDC login for the Flipt UI is configured under `flipt.flipt.config.authentication` (Keycloak example in `values.yaml`).
