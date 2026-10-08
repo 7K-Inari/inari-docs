@@ -14,7 +14,7 @@
 
 ## Precedence
 
-1. `INARI_KUBECTL_ACCESS_ENABLED` **explicitly set** in the environment → env wins; runtime writes are accepted but inert (API responses show `envPinned: true`).
+1. `INARI_KUBECTL_ACCESS_ENABLED` **explicitly set** in the environment → env wins; runtime writes are accepted but inert (API responses show `envPinned: true`). The env is **per-binary**: it must be set on BOTH inari-server and inari-kubeproxy, or you recreate the split-brain (proxy 410s while access-info still reports enabled). The Helm value `kubeproxy.kubectlAccessEnabled` (non-null) pins it on both deployments automatically; prefer it over hand-editing one Deployment.
 2. Env unset → runtime flag: cluster override → platform default → built-in `true`.
 
 ## Effects and latency
