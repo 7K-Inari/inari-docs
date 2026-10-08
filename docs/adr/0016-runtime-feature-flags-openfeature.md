@@ -37,5 +37,11 @@ We will make **OpenFeature the standard abstraction for all runtime feature flag
 - Kubectl access becomes a single-source, reversible, cluster-scoped control; disabling a cluster denies new kubectl sessions for that cluster only and closes its live tunnel session within the watcher poll interval (~2s) plus cache TTL.
 - New runtime flags require a registry entry, not new env plumbing; the REST catalog exposes them automatically.
 - The env override escape hatch is preserved for emergencies and air-gapped lockdown.
-- Follow-ups (not in this change): external OpenFeature provider wiring; UI admin toggles (the connect-tab notice already reflects the flag via access-info); migration of other flags (UI `features.kubectlAccess` first); a `clusters.configure` permission if cluster flag writes should diverge from cluster lifecycle rights.
+- Follow-ups (not in this change): UI admin toggles (delivered in inari-ui#116); migration of other flags (UI `features.kubectlAccess` first); a `clusters.configure` permission if cluster flag writes should diverge from cluster lifecycle rights.
 - Staleness bound: with the memory cache backend, replicas converge within `INARI_CACHE_FLAGS_TTL`; redis converges on the next read after the generation bump.
+
+## Addendum (2026-10-08): external provider delivered — Flipt via OFREP
+
+The external-provider follow-up is delivered. `INARI_FLAGS_PROVIDER=ofrep` + `INARI_FLAGS_PROVIDER_URL` wires an [OFREP](https://openfeature.dev/specification/appendix-b/) backend (stock `go-sdk-contrib/providers/ofrep`, no custom provider code) registered under a second named domain; the `Resolver` routes only flags registered `AuthorityExternalAllowed` to it, and only at platform scope — cluster-scoped evaluation and DB-authoritative flags (kill-switches) never leave the DB provider. The registry enforces the authority rule structurally: a cluster-scoped flag that is not `AuthorityDB` panics at package init.
+
+The recommended backend is **Flipt** (Apache-2.0, built-in UI, OIDC login free in OSS, OFREP-native, official Helm chart), shipped as an optional, disabled-by-default subchart in `charts/inari-server` (`flipt.enabled=true`, or `flagsProvider.url` for a BYO OFREP endpoint). Rationale over Unleash/Flagsmith/GrowthBook: those paywall SSO for their UIs; flagd has no management UI. The data plane (kubeproxy) never talks to the external provider; if a future external-allowed flag must gate the data plane, inari-server syncs its value into `feature_flags` — that sync is deliberately not built yet (no such flag exists).
