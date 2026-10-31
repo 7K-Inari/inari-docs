@@ -132,6 +132,15 @@ sequenceDiagram
 
 ## Follow-up (2026-09): Dex delivery via the official dexidp chart
 
+> **Superseded by [ADR-0017](0017-operator-sunset-gitops-kro-crossplane.md) (2026-10-31, decision D5):**
+> the `ClusterDex` CR and the inari-operator are retired. The cluster-local
+> Dex is delivered by inari-server (`internal/clusterdex`) as a
+> list-generator **ApplicationSet pair** (dex + argocd-config) per baseline
+> repo, driven by inventory selectors. The Dex `config.yaml` still lives in
+> an ESO/Vault-synced Secret (`configSecret.create: false`) and the
+> argocd-cm/rbac-cm baseline content is unchanged — only the delivery
+> mechanism changed. The original section is kept below for the record.
+
 The in-house `charts/dex` chart is retired. The cluster-local Dex is delivered
 by the inari-operator as a **single-source ArgoCD `Application`** per tenant
 cluster (`ClusterDex` CR) consuming the official dexidp Helm chart

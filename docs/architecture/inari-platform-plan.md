@@ -51,14 +51,14 @@ Every stated goal maps to a concrete architectural mechanism:
 | G2 | Curated self-service catalog per tenant cluster | Catalog Service normalizes **discovered capabilities** + **curated packages** (KRO RGDs, Helm) into Catalog Items with OpenAPI-v3 schemas and UI hints; per-tenant visibility rules | §5.5 |
 | G3 | Tenant-cluster controller that gathers capabilities | `inari-agent`: watches CRDs, OLM CSVs, Crossplane XRDs/providers; streams `capability-update` events upstream | §5.3 |
 | G4 | Register tenant AWS accounts & k8s clusters; all execution stays in the tenant environment | Cluster registration via one-time TTL'd token → per-cluster OIDC client credentials; AWS via `AssumeRoleWithWebIdentity` role created by a one-time CloudFormation/Terraform snippet. Agent executes everything locally via tenant Git + tenant-local ArgoCD | §5.3, §5.7, §6 |
-| G5 | Central platform cluster for platform-wide infra (Keycloak) with tenant-consumable resources (realms, clients) | Platform cluster hosts Keycloak + `inari-operator`, which reconciles platform-scoped Catalog Items (Keycloak realm/client, DNS, cert issuers) as tenant resources | §5.6 |
+| G5 | Central platform cluster for platform-wide infra (Keycloak) with tenant-consumable resources (realms, clients) | Platform cluster hosts Keycloak; tenant-consumable platform resources (Keycloak realm/client, DNS, cert issuers) are rendered by the control plane into the hub-facing GitOps repo and reconciled by hub KRO/Crossplane (ADR-0017) | §5.6 |
 | G6 | Catalog of prebuilt platform applications (Helm, KRO) | `inari-catalog` repo: curated RGD packages + Helm charts published as OCI artifacts, versioned channels | §5.5, §7 |
 | G7 | Extensible: backend actions (e.g., ArgoCD actions) and UI extensions | Backend: versioned gRPC plugin contract (go-plugin-style sidecars); UI: Module Federation host + blueprint extension points; plugin backends proxied through an authenticated extension path (ArgoCD proxy-extension model) | §5.8 |
 | G8 | Developers install providers (operators, Crossplane providers) into connected clusters | "Provider install" is itself a Catalog Item type; the agent applies provider manifests/GitOps sources into the tenant cluster, then capability discovery picks up the new CRDs automatically | §5.5, §9 |
 | G9 | Developers see "what can I run here?" from a generated catalog | Per-cluster catalog view: union of discovered capabilities and curated packages filtered by tenant RBAC and cluster compatibility | §8 |
 | G10 | Developer control plane: all resources, connections, integrations | Resources view: `ResourceInstance` inventory streamed back by agents (health from ArgoCD + KRO status), unified across clusters and cloud accounts | §5.2, §8 |
 | G11 | Manage lifecycle, policy and the fleet fleet-wide | Fleet Manager + Policy Service modules: ClusterSets & label targeting, staged fleet rollouts (KubeFleet-style, executed credential-free by agents), drift detection, cluster/agent/resource lifecycle states, OPA request-time + render-time checks, Kyverno/CEL policy packs with compliance reporting | §5.11, §7, §9 |
-| G12 | Create new Tenant Zones from the Platform zone (new AWS org account + tenant cluster, tenant-zone baseline auto-installed) | Tenant Zone Factory: platform-scoped catalog item (`tenant-zone-aws` KRO RGD) reconciled by Crossplane on the platform cluster (AWS Organizations `CreateAccount` → OIDC-trust bootstrap → EKS) + `inari-operator` wiring registration, Keycloak org, agent/ArgoCD/ESO baseline | §5.12, §7, §9 |
+| G12 | Create new Tenant Zones from the Platform zone (new AWS org account + tenant cluster, tenant-zone baseline auto-installed) | Tenant Zone Factory: platform-scoped catalog item (`tenant-zone-aws` KRO RGD) reconciled by Crossplane on the platform cluster (AWS Organizations `CreateAccount` → OIDC-trust bootstrap → EKS) + control-plane wiring (registration, Keycloak org, agent/ArgoCD/ESO baseline) | §5.12, §7, §9 |
 
 ---
 
@@ -108,7 +108,7 @@ Identity lifecycle, tenant onboarding/offboarding, audit review, extension gover
 
 Three trust zones:
 
-- **Inari Platform zone** — the platform cluster: `inari-server` (API + console + agent gateway), Keycloak (platform IdP), PostgreSQL, the extension/plugin host, and `inari-operator` managing platform-scoped resources.
+- **Inari Platform zone** — the platform cluster: `inari-server` (API + console + agent gateway), Keycloak (platform IdP), PostgreSQL, the extension/plugin host, and the hub GitOps stack (ArgoCD, KRO, Crossplane) reconciling platform-scoped resources.
 - **Tenant zones** — each tenant brings: one or more **k8s clusters** (running `inari-agent`, ArgoCD, optionally Crossplane/ESO/cert-manager) and one or more **AWS accounts** (onboarded via an OIDC web-identity role).
 - **Identity zone** — Keycloak `inari` realm with Organizations; optional per-tenant corporate IdPs brokered in.
 
@@ -128,7 +128,7 @@ Three trust zones:
 | Secrets | **External Secrets Operator**: namespaced `SecretStore` per tenant, governed `ClusterSecretStore` for platform | Ecosystem standard; backend policy scoped to tenant path prefix |
 | Database | **PostgreSQL** (control plane state), optional NATS for the internal event bus | Single-node start; outbox pattern for events/audit |
 | UI | **React + TypeScript + Vite**, Tailwind + shadcn/ui, RJSF for schema-driven forms, **Module Federation** for extensions | Matches extensibility model; schema-driven forms are the catalog's rendering engine |
-| Controller framework | **controller-runtime / kubebuilder** for `inari-agent` and `inari-operator` | Ecosystem standard |
+| Controller framework | **controller-runtime / kubebuilder** for `inari-agent` | Ecosystem standard |
 
 ---
 
@@ -142,7 +142,7 @@ Three trust zones:
 │   ├─ inari-server  (API, console host, agent gateway, catalog, audit, authz) │
 │   ├─ Keycloak      (realm "inari" + Organizations; platform SSO)             │
 │   ├─ PostgreSQL / NATS                                                       │
-│   ├─ inari-operator (platform-scoped resources: realms, clients, DNS, ESO)   │
+│   ├─ Hub GitOps stack (ArgoCD + KRO + Crossplane — platform-scoped resources)│
 │   └─ Platform apps (Helm/KRO catalog: keycloak, cert-manager, ESO, ArgoCD…)  │
 └───────────────▲─────────────────────────────────────────────▲────────────────┘
                 │ outbound gRPC stream (agent dials out)      │ OIDC/JWT
@@ -215,7 +215,7 @@ A kubebuilder-built controller deployed by a single install manifest (or Helm) i
 - **Organizations** (GA since KC 26)[^5^] give: per-tenant overhead of a DB row (vs a realm object — realm-per-tenant measurably degrades: admin-API p95 ~2ms → 16.6s by 500 realms in published benchmarks[^4^]), per-org IdP brokering with verified-domain routing (enterprise SSO per tenant), and multi-org users (contractors spanning tenants).
 - **Tokens**: request the built-in `organization` scope; org-id/attribute mappers put tenant claims in the token. **Services authorize by claim, never by URL/header.** Client scopes shape tokens; one client scope per downstream service with an audience mapper (per-service `aud`) blocks token reuse; Full Scope Allowed off on public clients.
 - **Teams = groups** (`tenant-acme/platform-team`) — the vehicle for k8s RBAC mapping, not the tenant boundary.
-- **Per-tenant Keycloak realms/clients are self-service catalog resources**, reconciled by `inari-operator` (Keycloak Admin REST / Crossplane provider-keycloak), lifecycle-tied to the tenant. Tenant realms serve *workload* federation (tenant apps' own SSO) — never platform user identity.
+- **Per-tenant Keycloak realms/clients are self-service catalog resources**, rendered by the control plane as Crossplane `provider-keycloak` managed resources into the hub-facing GitOps repo (ADR-0017), lifecycle-tied to the tenant. Tenant realms serve *workload* federation (tenant apps' own SSO) — never platform user identity.
 
 #### Kubernetes user access (SSO to tenant clusters)
 
@@ -239,19 +239,19 @@ Three catalog sources, one normalized `CatalogItem` model:
 
 1. **Discovered capabilities** — from the agent: CRDs, OLM CSV descriptors, Crossplane XRDs/claims, KRO RGDs present in *this* cluster. Rendered as forms by walking the OpenAPI v3 schema (RJSF-style), enriched by OLM `specDescriptors`/`x-descriptors`[^10^] and optional KubeVela-style UI-schema overrides[^11^] (per-capability hint documents stored as data).
 2. **Curated packages** — KRO `ResourceGraphDefinitions` from `inari-catalog` (OCI artifacts, versioned channels `stable`/`incubating`): the golden-path templates ("PostgreSQL on AWS", "Web service with DNS+TLS"). KRO chosen because RGDs are single YAML artifacts, CEL is type-checked/terminating (no template sandbox needed), and kro generates the CRD + controller dynamically on any tenant cluster.[^9^] Raw discovered capabilities can be *wrapped* into curated RGDs over time.
-3. **Platform apps** — Helm charts/KRO packages installable on the **platform cluster** (Keycloak itself, cert-manager, ESO, ArgoCD, monitoring stack), plus platform-scoped resource types (Keycloak realm, Keycloak client) reconciled by `inari-operator`.
+3. **Platform apps** — Helm charts/KRO packages installable on the **platform cluster** (Keycloak itself, cert-manager, ESO, ArgoCD, monitoring stack), plus platform-scoped resource types (Keycloak realm, Keycloak client) rendered hub-side (§5.6).
 
 **Curation model:** platform engineers assign visibility (which tenants/clusters see which items), parameter policies (locked defaults, allowed ranges), approval policy, and GitOps target policy. Catalog entries are versioned; tenants pin versions.
 
 **Provider installs (developer story D1):** "install Crossplane provider-aws" is itself a Catalog Item whose payload is the provider manifest/GitOps source. Agent installs it → its CRDs appear → capability discovery emits them → the catalog grows automatically. This loop is Inari's signature mechanic.
 
-### 5.6 Platform cluster & `inari-operator`
+### 5.6 Platform cluster & platform-scoped resources
 
 The platform cluster is both the **host of the control plane** and a **first-class deployment target**:
 
 - Runs Keycloak, PostgreSQL/NATS, the control plane, and platform apps from the curated catalog (Helm/KRO).
-- `inari-operator` reconciles **platform-scoped Catalog Items** requested by tenants: Keycloak realm/client, DNS zone/records (ExternalDNS), cert issuers, shared ArgoCD projects, tenant namespaces on the platform cluster (for tenants allowed to run workloads centrally).
-- Tenant access to platform-cluster resources is namespace-isolated and mediated by impersonation (§5.4) — the same authz model as tenant clusters.
+- **Platform-scoped resources** requested by tenants (Keycloak realm/client, DNS records, cert issuers, tenant namespaces on the hub) are **rendered by the control plane** (`inari-server`) as native manifests / KRO instances / Crossplane claims into the hub-facing platform GitOps repo under tenant-scoped paths, and applied by hub ArgoCD — KRO RGDs (`tenantnamespace`) and Crossplane `provider-keycloak` reconcile them (ADR-0017; the dedicated `inari-operator` is retired).
+- Tenant access to platform-cluster resources is governed by repo-level authorization: the server is the only writer to the platform repo (direct or PR per commit policy), with ArgoCD AppProject destination restrictions as belt-and-suspenders (ADR-0017, D3).
 
 ### 5.7 AWS account onboarding
 
@@ -347,7 +347,7 @@ A platform-engineer-only, platform-scoped Catalog Item (`tenant-zone-aws`, packa
 2. **Account vend** — Crossplane (`provider-aws-organizations`) on the platform cluster creates the AWS account in the target OU and waits for readiness (async; minutes)[^33^][^34^]. A baseline policy pack applies org-side guardrails (CloudTrail, budget alert, mandatory cost tags).
 3. **Trust bootstrap** — via the auto-created `OrganizationAccountAccessRole`, Inari creates the standard OIDC web-identity role in the new account (the same contract as BYO onboarding, §5.7). From here on everything uses `AssumeRoleWithWebIdentity` — no stored keys.
 4. **Cluster provision** — Crossplane EKS resources (cluster, node group, OIDC provider for IRSA) materialize the tenant cluster per the requested tier.
-5. **Inari wiring** (`inari-operator` + control plane): create the Keycloak Organization + default groups and RBAC mapping; create Cluster + CloudAccount records; issue a registration token; render the tenant-zone baseline bundle (inari-agent, ArgoCD, ESO, baseline policy packs) into the zone's new Git repo and register the tenant-local ArgoCD root app. The agent connects, exchanges the token, and the bootstrap credential is forgotten.
+5. **Inari wiring** (control plane): create the Keycloak Organization + default groups and RBAC mapping; create Cluster + CloudAccount records; issue a registration token; render the tenant-zone baseline bundle (inari-agent, ArgoCD, ESO, baseline policy packs) into the zone's new Git repo and register the tenant-local ArgoCD root app. The agent connects, exchanges the token, and the bootstrap credential is forgotten.
 6. **Active** — the zone flips to `Active`; capabilities start streaming; the curated catalog becomes visible per tenant policy.
 
 **Lifecycle ties:** decommissioning a Tenant Zone reverses the flow — cordon → drain Inari-managed resources → delete EKS → `CloseAccount`/suspend → revoke identities → archive audit — behind approval gates with ownership checks (§5.11).
@@ -368,18 +368,18 @@ Polyrepo under a single GitHub org, e.g. **`inari-dev`** (mirrors how k8s ecosys
 | --- | --- | --- | --- | --- |
 | 1 | **`inari-server`** | Control plane: REST API/BFF, agent gRPC gateway, tenancy, cluster registry, catalog service, orchestrator, cloud accounts, resources inventory, audit, approvals, notifications, extension host | Go, PostgreSQL, chi/Huma, NATS | Container image `inari/server` |
 | 2 | **`inari-agent`** | Tenant-cluster controller: registration/bootstrap, capability discovery watches, gRPC client, GitOps renderer, ArgoCD command proxy, status streamer | Go, controller-runtime | Container image `inari/agent` + install manifests |
-| 3 | **`inari-operator`** | Platform-cluster operator: tenant Keycloak realms/clients, platform namespaces, DNS/cert shared resources, platform app installs | Go, controller-runtime | Container image `inari/operator` |
+| 3 | ~~**`inari-operator`**~~ (archived) | Retired platform-cluster operator (ADR-0017): its platform-scoped resources moved to server-rendered hub GitOps + KRO/Crossplane; repo archived | Go, controller-runtime | — (no longer published) |
 | 4 | **`inari-ui`** | Web console (host shell, all first-party pages), design system, schema-form renderer | React, TS, Vite, Tailwind, shadcn/ui, RJSF, Module Federation | Static bundle served by `inari-server` |
 | 5 | **`inari-api`** | Protobuf (agent protocol, plugin contract) + OpenAPI specs; generated Go/TS clients | Buf, protoc, oapi-codegen | Versioned contract packages |
 | 6 | **`inari-plugin-sdk`** | Go SDK for backend extensions (handshake, lifecycle, auth context, helpers) | Go, hashicorp go-plugin | Go module |
 | 7 | **`inari-ui-plugin-sdk`** | TS SDK: extension-point blueprints, host APIs, dev harness (run an extension standalone against a dev control plane) | TS | npm package |
 | 8 | **`inari-catalog`** | Curated packages: KRO RGDs, platform-app Helm charts, UI-schema hints, per-package docs/tests; CI publishes signed OCI artifacts | YAML, CEL, Helm, OPA tests | OCI artifacts + channels (`stable`, `incubating`) |
 | 9 | **`inari-cli`** | `inari` CLI: login (OIDC device flow), cluster/catalog/resource ops, agent install, extension scaffolding (`inari extension init`) | Go, cobra | Binary releases (brew/scoop/go install) |
-| 10 | **`inari-release-bundle`** (formerly `inari-helm-charts`) | Deployment: core charts (`inari-platform`, `inari-server`, `inari-console`), GitOps composition, day-0 bootstrap (tenant-cluster Dex comes from the official `dexidp` chart, operator-rendered) | Helm | Chart releases (OCI, org-level `oci://ghcr.io/7k-inari/charts`) |
+| 10 | **`inari-release-bundle`** (formerly `inari-helm-charts`) | Deployment: core charts (`inari-platform`, `inari-server`, `inari-console`), GitOps composition, day-0 bootstrap (tenant-cluster Dex comes from the official `dexidp` chart, server-rendered via `internal/clusterdex`) | Helm | Chart releases (OCI, org-level `oci://ghcr.io/7k-inari/charts`) |
 | 11 | **`inari-ext-argocd`** | Reference + first-party extension: ArgoCD actions (sync/refresh/rollback/custom Lua actions), ArgoCD status cards/tabs for the UI | Go + TS | Container image + UI remote |
 | 12 | **`inari-docs`** | Docs site, ADRs, user/operator/extension-author guides, tutorials | Astro/Docusaurus | Static site |
 
-**Repo-count rationale:** 12 repos total, but only **4 runtime components** (server, agent, operator, UI) and **2 SDKs**; the rest are contracts (api), content (catalog, charts, docs), tooling (cli), and the reference extension. If the team is < 4 engineers at start, merge 5→1 (api into server) and 7→4 (UI SDK into UI) temporarily, keeping directory boundaries — reducing to **10** with zero structural change later.
+**Repo-count rationale:** 12 repos total, but only **3 runtime components** (server, agent, UI — the operator is retired, ADR-0017) and **2 SDKs**; the rest are contracts (api), content (catalog, charts, docs), tooling (cli), and the reference extension. If the team is < 4 engineers at start, merge 5→1 (api into server) and 7→4 (UI SDK into UI) temporarily, keeping directory boundaries — reducing to **10** with zero structural change later.
 
 **Cross-repo mechanics:** `inari-api` is the compatibility contract — server, agent, cli, and plugins pin its versions; CI runs contract tests against it. `inari-catalog` has its own release cadence (content ships faster than binaries). Every repo: conventional commits, semantic versioning, cosign-signed images/artifacts.
 
@@ -400,7 +400,7 @@ MoSCoW prioritization. **M = v1.0 must**, S = v1.0 should (first to slip), C = v
 | Curated catalog v1: ~8–12 golden-path packages (KRO RGDs) — e.g., web-service+DNS+TLS, PostgreSQL (AWS), S3-backed app, namespace-as-a-service, Keycloak realm/client | M |
 | Platform cluster + platform apps catalog (Keycloak, cert-manager, ESO, ArgoCD, monitoring) | M |
 | DNS/ingress/TLS automation as tenant-facing catalog capabilities (ExternalDNS + cert-manager + ingress controller) | S |
-| Platform-scoped tenant resources: Keycloak realms/clients, DNS, tenant namespaces (via `inari-operator`) | M |
+| Platform-scoped tenant resources: Keycloak realms/clients, DNS, tenant namespaces (hub KRO `tenantnamespace` RGD + Crossplane `provider-keycloak`, ADR-0017) | M |
 | AWS account onboarding (OIDC web-identity role, validation, per-account ProviderConfig) | M |
 | Audit log (every action, filterable, exportable) | M |
 | Approval workflows on catalog actions | M |
@@ -566,7 +566,7 @@ Assumptions: 4–6 engineers, polyrepo, 2-week iterations. Milestones are capabi
 ### M3 — Cloud, Platform Cluster & Governance (wks 16–23)
 
 - AWS account onboarding (web-identity role, validation, ProviderConfig materialization) + Crossplane-based packages (PostgreSQL/S3)
-- Platform cluster + `inari-operator` (Keycloak realm/client resources, DNS via ExternalDNS, tenant namespaces); platform apps catalog (Keycloak, cert-manager, ESO, ArgoCD)
+- Platform cluster + platform-scoped resources (Keycloak realm/client via Crossplane `provider-keycloak`, DNS via ExternalDNS, tenant namespaces via the KRO `tenantnamespace` RGD — server-rendered hub GitOps, ADR-0017); platform apps catalog (Keycloak, cert-manager, ESO, ArgoCD)
 - Approvals, RBAC mapping UX, notifications; impersonation for automation
 - Policy Service: request-time OPA checks, render-time manifest checks; policy pack (Kyverno/CEL VAP) distribution via agent
 - Cluster lifecycle states (cordon; decommission with drain + OIDC client revocation)

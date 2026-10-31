@@ -25,7 +25,7 @@ flowchart TB
     EXT[Extension host · plugin sidecars]
     DB[(PostgreSQL / NATS)]
     FGA[OpenFGA]
-    OPR[inari-operator]
+    XP[Crossplane · provider-aws / provider-keycloak]
   end
   subgraph TZ[Tenant zone · per tenant]
     AGT[inari-agent]
@@ -45,7 +45,7 @@ flowchart TB
   AGT --> ACD
   AGT --> ESO
   SRV -.->|AssumeRoleWithWebIdentity via Crossplane IRSA| ACC
-  OPR -.->|CreateAccount / CloseAccount| MGMT
+  XP -.->|CreateAccount / CloseAccount| MGMT
 ```
 
 Boundary crossings:
@@ -63,7 +63,7 @@ Boundary crossings:
 
 ## Zone 1 — Platform zone
 
-`inari-server` (API gateway/BFF, agent gateway, catalog, orchestrator, audit, extension host, fleet manager, policy service), Keycloak, PostgreSQL/NATS, OpenFGA, `inari-operator`, plugin sidecars.
+`inari-server` (API gateway/BFF, agent gateway, catalog, orchestrator, audit, extension host, fleet manager, policy service), Keycloak, PostgreSQL/NATS, OpenFGA, plugin sidecars.
 
 | STRIDE | Threat | v1.0 mitigation | Residual risk |
 | --- | --- | --- | --- |

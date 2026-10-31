@@ -26,7 +26,7 @@ How the first platform cluster and control plane are installed. Inari never requ
      -f platform-values.yaml
    ```
 
-3. **Install the control plane umbrella chart** — `inari-server` (API, console, agent gateway), `inari-operator`:
+3. **Install the control plane umbrella chart** — `inari-server` (API, console, agent gateway):
 
    ```bash
    helm upgrade --install inari oci://ghcr.io/7k-inari/charts/inari-control-plane \
