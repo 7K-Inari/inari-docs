@@ -21,7 +21,6 @@ The HA implementation work (chart knobs, leader-leased loops, golden-path disrup
 | Component | HA model | Production posture | Verdict / notes |
 | --- | --- | --- | --- |
 | `inari-server` | Stateless REST; multi-replica | `replicaCount: 2` + probes, PDB, anti-affinity (chart knobs — in flight) | Replica-safe paths: outbox consumers (`SKIP LOCKED`) for internal/audit delivery; scaffold claim-based dispatch. Coordinated singletons run behind a leader lease (in flight): TZF reconcile, fleet advance/drift, approvals expiry, catalog sync, group syncs, tenant-deletion resume. Migrations are serialized via a PostgreSQL advisory lock; agent streams are fenced server-side, so a reconnect after pod loss cannot split a stream. |
-| `inari-operator` | Active-passive via controller leader election (on by default) | `replicaCount: 2` + PDB, anti-affinity | Second replica is a hot standby; leadership failover on pod loss. |
 | `inari-console` | Stateless nginx SPA | `replicaCount: 2` + liveness probe, PDB, anti-affinity | No coordination needed; any replica serves any request. |
 | `inari-ext-argocd` | Exec mode inherits `inari-server` pod HA | Same as `inari-server` when running in-process | Standalone `http` mode is **not yet deployable** — no chart/manifests exist for it; exec mode is the only HA-supported topology today. |
 | `inari-agent` | **Active-passive only** (per tenant cluster) | `replicas: 2` + `leaderElection.enabled=true` | Command dispatch fails closed while the agent is disconnected from the control plane; on reconnect it runs a checksum resync before accepting new commands. A single-replica posture relies on Kubernetes self-healing (restart/reschedule) — no standby, so reconcile pauses until the pod is back. |
@@ -45,21 +44,6 @@ affinity:
       - topologyKey: kubernetes.io/hostname
 livenessProbe: {}    # chart defaults
 readinessProbe: {}   # gate traffic on readiness, not liveness alone
-```
-
-### `inari-operator`
-
-```yaml
-replicaCount: 2
-leaderElection:
-  enabled: true      # default; do not disable in production
-podDisruptionBudget:
-  enabled: true
-  minAvailable: 1
-affinity:
-  podAntiAffinity:
-    requiredDuringSchedulingIgnoredDuringExecution:
-      - topologyKey: kubernetes.io/hostname
 ```
 
 ### `inari-console`
@@ -103,6 +87,6 @@ These roll up into the [production checklist](bootstrap.md#production-checklist)
 
 ## Validation
 
-HA is verified as part of the golden-path test suite: with `INARI_HA=true`, the suite runs disruption assertions — pod kills against `inari-server`, `inari-operator`, and dependencies mid-golden-path — and asserts zero failed user requests and clean leader/stream takeover.
+HA is verified as part of the golden-path test suite: with `INARI_HA=true`, the suite runs disruption assertions — pod kills against `inari-server` and dependencies mid-golden-path — and asserts zero failed user requests and clean leader/stream takeover.
 
 HA test-run evidence (results, disruption timelines, verdicts) is recorded in the [load test report](../ops/load-test-v1.md), alongside the v1 scale-envelope results; the [fleet rollout game-day](../ops/fleet-rollout-gameday.md) shows the drill format used for that class of evidence.

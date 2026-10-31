@@ -44,7 +44,6 @@ release-please is configured per repo via `release-please-config.json` + `.relea
 | --- | --- | --- | --- |
 | `inari-server` | `go` | Container image `inari/server` | GHCR image + cosign + SBOM/SLSA |
 | `inari-agent` | `go` | Container image `inari/agent` + install manifests | GHCR image + cosign + SBOM/SLSA |
-| `inari-operator` | `go` | Container image `inari/operator` | GHCR image + cosign + SBOM/SLSA |
 | `inari-ui` | `node` | Static bundle (served by `inari-server`) | versioned bundle artifact |
 | `inari-api` | `go` | Contract packages (protobuf/OpenAPI, generated clients) | Go module tag `vX.Y.Z` |
 | `inari-plugin-sdk` | `go` | Go module | Go module tag `vX.Y.Z` |
@@ -57,11 +56,11 @@ release-please is configured per repo via `release-please-config.json` + `.relea
 
 ### inari-release-bundle: per-chart scheme
 
-Charts version **independently**. The repo (formerly `inari-helm-charts`) uses one release-please config with a separate package entry per chart path (`charts/inari-platform`, `charts/inari-server`, `charts/inari-console`), each with `release-type: helm`. (The in-house `charts/dex` was retired: tenant-cluster Dex is deployed by the inari-operator from the official `dexidp` chart as ArgoCD Applications — see ADR-0012.)
+Charts version **independently**. The repo (formerly `inari-helm-charts`) uses one release-please config with a separate package entry per chart path (`charts/inari-platform`, `charts/inari-server`, `charts/inari-console`), each with `release-type: helm`. (The in-house `charts/dex` was retired: tenant-cluster Dex is server-rendered from the official `dexidp` chart as ArgoCD ApplicationSets — see ADR-0012/ADR-0017.)
 
 - Tags are per chart: **`<chart-name>-v<version>`** (e.g. `inari-platform-v0.4.1`).
 - The Release PR bumps each changed chart's `version` in its `Chart.yaml` and updates the per-chart CHANGELOG; only charts with releasable commits get bumped.
-- On merge, `release.yaml` creates the per-chart tags and pushes each changed chart as an OCI artifact to the **org-level namespace** `oci://ghcr.io/7k-inari/charts/<chart-name>` — the same namespace the inari-agent and inari-operator charts (which stay in their repos) publish to. The old repo-scoped namespaces (`…/inari-helm-charts/charts`, `…/inari-server/charts`, `…/inari-ui/charts`) are deprecated; existing artifacts stay published.
+- On merge, `release.yaml` creates the per-chart tags and pushes each changed chart as an OCI artifact to the **org-level namespace** `oci://ghcr.io/7k-inari/charts/<chart-name>` — the same namespace the inari-agent chart (which stays in its repo) publishes to. The old repo-scoped namespaces (`…/inari-helm-charts/charts`, `…/inari-server/charts`, `…/inari-ui/charts`) are deprecated; existing artifacts stay published.
 - **`inari-server`/`inari-console` appVersion sync**: the charts moved here from the component repos. After their publish pipelines succeed, the inari-server/inari-ui `release.yml` dispatches `appversion-bump` to the bundle repo's `chart-sync.yml`, which commits `fix(<chart>): bump appVersion to vX.Y.Z` (plus inari-console's `values.yaml` `bundle.tag`) so the Release PR proposes a chart patch release and the chart publishes in lockstep with the component. `appVersion:` in those charts is owned by this sync — never hand-edit it and never annotate it `x-release-please-version`. Repair path: `chart-sync.yml` `workflow_dispatch` with `chart` + `version`.
 - **Agent compatibility range**: `charts/inari-platform` declares `agent.supportedRange` (human-maintained semver range) and `agent.recommended` (default pin, auto-bumpable by the inari-agent release pipeline), rendered into the `inari-agent-compat` ConfigMap. inari-server reads these to recommend agent installs/upgrades.
 
@@ -88,7 +87,6 @@ Per-repo edge artifacts:
 | `inari-server` | Image `:<pending>-<sha>` (+ `:edge`, `:edge-<sha>`); OpenAPI spec OCI `:<pending>-<sha>` (cosign-signed) |
 | `inari-ui` | Bundle OCI `inari-ui-bundle:<pending>-<sha>` (+ `:edge`) |
 | `inari-agent` | Image `:<pending>-<sha>` (+ `:edge`, `:edge-<sha>`) |
-| `inari-operator` | Image `:<pending>-<sha>`; both charts pushed at their pending edge versions |
 | `inari-ext-argocd` | Backend image `:<pending>-<sha>`; backend + UI (`ui-v…`) prereleases, UI remote assets attached |
 | `inari-api` | npm `@7k-inari/api-client@<pending>-<sha>` (dist-tag `edge`); prerelease tag doubles as Go module ref |
 | `inari-ui-plugin-sdk` | npm `@<pending>-<sha>` (dist-tag `edge`) |

@@ -16,7 +16,7 @@ Backup jobs are installed by the platform baseline chart and write to the object
 ## Restore procedure
 
 1. **Stand up a clean platform cluster** — run [day-0 bootstrap](bootstrap.md) with the same hostnames/OIDC issuer.
-2. **Stop writers** — scale `inari-server` and `inari-operator` to 0.
+2. **Stop writers** — scale `inari-server` to 0.
 3. **Restore PostgreSQL** — restore the latest dump (or PITR to just before the incident). Confirm the outbox table is present.
 4. **Restore Keycloak** — restore its database, then re-import the realm export if the DB restore predates it. Verify the `inari` realm, Organizations, and per-cluster OIDC clients exist.
 5. **Restore OpenFGA** — import the latest store export **or** load the authorization model and let the tuple reconciler re-derive tuples from PostgreSQL (slower; safe).
