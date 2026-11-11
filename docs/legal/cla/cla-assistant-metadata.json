@@ -1,0 +1,39 @@
+{
+  "name": {
+    "title": "Full legal name",
+    "type": "string",
+    "githubKey": "name",
+    "required": true
+  },
+  "email": {
+    "title": "Contact email",
+    "type": "string",
+    "githubKey": "email",
+    "required": true
+  },
+  "category": {
+    "title": "How are you accepting the agreement?",
+    "type": {
+      "enum": [
+        "I accept the Individual CLA on my own behalf.",
+        "I am authorized to accept the Corporate CLA on behalf of my employer or another legal entity."
+      ]
+    },
+    "required": true
+  },
+  "company": {
+    "title": "Legal entity name (corporate signers)",
+    "type": "string",
+    "required": false
+  },
+  "title": {
+    "title": "Title or authority (corporate signers)",
+    "type": "string",
+    "required": false
+  },
+  "agreement": {
+    "title": "I have read and agree to the selected CLA",
+    "type": "boolean",
+    "required": true
+  }
+}
