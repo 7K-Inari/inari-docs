@@ -30,6 +30,7 @@ mkdocs build --strict # what CI runs — warnings (broken links, nav gaps) fail 
 | `docs/extension-authors/` | Plugin/UI-extension author docs |
 | `docs/tutorials/` | Step-by-step walkthroughs |
 | `docs/security/` | Security docs: threat model per trust zone, review artifacts |
+| `docs/legal/` | Canonical legal and contributor-agreement documents |
 | `docs/adr/` | Architecture Decision Records (see [CONTRIBUTING.md](CONTRIBUTING.md)) |
 
 Section labels and ordering are controlled by `.pages` files in each folder (and the root `docs/.pages`) — you don't need to touch `mkdocs.yml` when adding pages.
