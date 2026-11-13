@@ -15,6 +15,8 @@ Every 7K-Inari repo releases the same way:
    - creates the git **tag** and the **GitHub Release** (with the CHANGELOG notes), then
    - runs the **publish jobs** — GHCR container images with cosign signatures + SBOM/SLSA provenance, OCI Helm charts/artifacts, goreleaser binaries, Go module and npm tags — either directly or via reusable workflows (`workflow_call`).
 
+OCI bundles, including the console bundle, are scanned by Harbor/Trivy under the same release-gate policy as other images.
+
 ```mermaid
 flowchart LR
     A[PR merged to main<br/>conventional commits] --> B[release-please<br/>PR-only mode]
